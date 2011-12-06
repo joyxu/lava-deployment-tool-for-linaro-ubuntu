@@ -611,7 +611,7 @@ install_app() {
     "STATIC_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static",
     "MEDIA_URL": "/media/",
     "STATIC_URL": "/static/",
-    "MOUNT_POINT:" "/",
+    "MOUNT_POINT": "/",
     "LOGIN_URL": "/accounts/login/",
     "LOGIN_REDIRECT_URL": "/",
     "DATAREPORT_DIRS": [
