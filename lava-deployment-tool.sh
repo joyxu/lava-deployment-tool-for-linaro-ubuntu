@@ -459,12 +459,13 @@ install_web_hosting() {
     logger "Installing uWSGI and other hosting parts for LAVA instance $LAVA_INSTANCE"
 
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
-    pip install uwsgi django-seatbelt django-debian
+    pip install http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz || die "Unable to install uWSGI"
+    pip install django-seatbelt django-debian || die "Unable to install django-seatbelt and django-debian"
     deactivate
 
     if [ \! -e /etc/apache2/mods-available/uwsgi.load ]; then
         logger "Building uWSGI apache module..."
-        ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp && tar zxf $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fuwsgi-latest.tar.gz )
+        ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp && tar zxf $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fuwsgi-$LAVA_UWSGI.tar.gz )
         ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp/uwsgi-$LAVA_UWSGI/apache2 && sudo apxs2 -c -i -a mod_uwsgi.c )
     fi
 
