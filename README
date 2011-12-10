@@ -41,7 +41,7 @@ extensions for python.
 
 This step is largely automated. To perform it run this command:
 
-$ ./lava-deployment-tool setup
+$ ./lava-deployment-tool.sh setup
 
 This step also prepares file-system places for LAVA. In particular it creates
 /srv/lava/ where all LAVA instances are later stored.
@@ -53,7 +53,7 @@ You can create multiple LAVA instances on a single machine. Being able to do
 so is very valuable for testing and developing LAVA itself. To create a new
 instance run this command:
 
-$ ./lava-deployment-tool install NAME URL-to-requirements
+$ ./lava-deployment-tool.sh install NAME URL-to-requirements
 
 This will create a fresh instance called NAME, the instance will be composed of
 the parts specified in the requirements file (specified by the URL). If the
@@ -157,7 +157,7 @@ javascript libraries)
 
 To upgrade an existing instance run the following command:
 
-$ ./lava-deployment-tool upgrade NAME URL-to-requirements
+$ ./lava-deployment-tool.sh upgrade NAME URL-to-requirements
 
 Again the NAME and URL-to-requirements have the same meaning as in the
 install command mentioned in preceding chapter.
