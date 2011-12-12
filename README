@@ -12,11 +12,9 @@ deployment. For that it is likely we will turn to Juju
 Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
-This tool should work on all Ubuntu versions starting with Lucid (the 10.04 LTS
-release). With small help it is likely to work on Debian and other derivatives.
-If you'd like to help us with Red Hat derivatives or other distributions feel
-free to contact us at validation@linaro.org.
-
+This tool should work on Ubuntu versions starting with 10.10 release
+(Maverick). If you'd like to help us with other distributions feel free to
+contact us at validation (at) linaro (dot) org.
 
 Hardware Requirements
 ^^^^^^^^^^^^^^^^^^^^^
@@ -188,4 +186,4 @@ Contact and bug reports
 Please report bugs using
 https://bugs.launchpad.net/lava-deployment-tool/+filebug
 
-Feel free to contact us at validation@linaro.org.
+Feel free to contact us at validation (at) linaro (dot) org.
