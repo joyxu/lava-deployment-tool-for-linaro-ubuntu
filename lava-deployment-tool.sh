@@ -1361,7 +1361,7 @@ main() {
             ;;
         install|upgrade|remove)
             LAVA_INSTANCE=${1:-dev}
-            cmd_$cmd "$@" 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
+            cmd_$cmd "$@" # 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
             ;;
         backup)
             cmd_backup "$@"
