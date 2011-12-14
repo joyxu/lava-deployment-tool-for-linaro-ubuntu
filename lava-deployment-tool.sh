@@ -592,8 +592,11 @@ wizard_app() {
 
 install_app() {
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+
     echo "Installing/upgrading application code from $LAVA_REQUIREMENT file"
+    set -x
     pip install --upgrade --requirement=$LAVA_REQUIREMENT || die "Failed to install application"
+    set +x
     deactivate
 
     if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf ]; then
@@ -674,25 +677,33 @@ install_config_app() {
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
 
     echo "Building cache of static files..."
+    set -x
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
         build_static --noinput --link
+    set +x
 
     echo "Stopping instance for database changes..."
+    set -x
     sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true # in case of upgrades
+    set +x
 
     echo "Synchronizing database..."
+    set -x
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
         syncdb --noinput
+    set +x
 
     echo "Running migrations..."
+    set -x
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
         migrate --noinput
+    set +x
 
     # Get out of virtualenv
     deactivate
