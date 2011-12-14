@@ -592,12 +592,18 @@ wizard_app() {
 
 install_app() {
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+    echo "Installing/upgrading application code from $LAVA_REQUIREMENT file"
     pip install --upgrade --requirement=$LAVA_REQUIREMENT || die "Failed to install application"
     deactivate
 
     if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf ]; then
         if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server ]; then
             # We're in editable server mode, let's use alternate paths for tempates and static files
+            echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for DEVELOPMENT"
+            echo "This means that lava-server (which has to be special) is installed in editable mode"
+            echo "Some of the paths will refer to $LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server."
+            echo "Even if you later on upgrade to non-editable lava-server those paths"
+            echo "will remain to be in use untill you wipe your old config and upgrade again"
             cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
 {
     "DEBUG": false,
@@ -624,6 +630,7 @@ install_app() {
 }
 SETTINGS_CONF
         else
+            echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
             cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
 {
     "DEBUG": false,
@@ -690,7 +697,7 @@ install_config_app() {
     # Get out of virtualenv
     deactivate
 
-    echo "Your instance is now ready, please start it with"
+    echo "Your instance is now ready, please start (or re-start) it with"
     echo "sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE"
 }
 
