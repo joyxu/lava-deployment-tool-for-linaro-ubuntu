@@ -681,7 +681,7 @@ install_config_app() {
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
-        build_static --noinput --link
+        build_static --noinput --link || die "Failed to update the cache of static content"
     set +x
 
     echo "Stopping instance for database changes..."
@@ -694,7 +694,7 @@ install_config_app() {
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
-        syncdb --noinput
+        syncdb --noinput || die "Failed to synchronize database (run non-migration db updates)"
     set +x
 
     echo "Running migrations..."
@@ -702,7 +702,7 @@ install_config_app() {
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
-        migrate --noinput
+        migrate --noinput || die "Failed to run database migrations"
     set +x
 
     # Get out of virtualenv
@@ -1133,8 +1133,8 @@ cmd_upgrade() {
     fi
 
     _load_configuration "$LAVA_INSTANCE"
-    install_app
-    install_config_app
+    install_app || die "Failed to upgrade application code"
+    install_config_app || die "Failed to run post-upgrade configuration"
 }
 
 
