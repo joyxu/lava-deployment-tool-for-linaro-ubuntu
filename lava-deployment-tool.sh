@@ -592,12 +592,21 @@ wizard_app() {
 
 install_app() {
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+
+    echo "Installing/upgrading application code from $LAVA_REQUIREMENT file"
+    set -x
     pip install --upgrade --requirement=$LAVA_REQUIREMENT || die "Failed to install application"
+    set +x
     deactivate
 
     if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf ]; then
         if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server ]; then
             # We're in editable server mode, let's use alternate paths for tempates and static files
+            echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for DEVELOPMENT"
+            echo "This means that lava-server (which has to be special) is installed in editable mode"
+            echo "Some of the paths will refer to $LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server."
+            echo "Even if you later on upgrade to non-editable lava-server those paths"
+            echo "will remain to be in use untill you wipe your old config and upgrade again"
             cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
 {
     "DEBUG": false,
@@ -624,6 +633,7 @@ install_app() {
 }
 SETTINGS_CONF
         else
+            echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
             cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
 {
     "DEBUG": false,
@@ -667,30 +677,38 @@ install_config_app() {
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
 
     echo "Building cache of static files..."
+    set -x
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
-        build_static --noinput --link
+        build_static --noinput --link || die "Failed to update the cache of static content"
+    set +x
 
     echo "Stopping instance for database changes..."
+    set -x
     sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true # in case of upgrades
+    set +x
 
     echo "Synchronizing database..."
+    set -x
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
-        syncdb --noinput
+        syncdb --noinput || die "Failed to synchronize database (run non-migration db updates)"
+    set +x
 
     echo "Running migrations..."
+    set -x
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
-        migrate --noinput
+        migrate --noinput || die "Failed to run database migrations"
+    set +x
 
     # Get out of virtualenv
     deactivate
 
-    echo "Your instance is now ready, please start it with"
+    echo "Your instance is now ready, please start (or re-start) it with"
     echo "sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE"
 }
 
@@ -1115,8 +1133,8 @@ cmd_upgrade() {
     fi
 
     _load_configuration "$LAVA_INSTANCE"
-    install_app
-    install_config_app
+    install_app || die "Failed to upgrade application code"
+    install_config_app || die "Failed to run post-upgrade configuration"
 }
 
 
@@ -1343,7 +1361,7 @@ main() {
             ;;
         install|upgrade|remove)
             LAVA_INSTANCE=${1:-dev}
-            cmd_$cmd "$@" 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
+            cmd_$cmd "$@" # 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
             ;;
         backup)
             cmd_backup "$@"
