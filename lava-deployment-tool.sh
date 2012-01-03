@@ -123,10 +123,9 @@ _configure() {
     export LAVA_INSTANCE="$1"
     export LAVA_REQUIREMENT="$2"
     # Defaults
-    export LAVA_SYS_USER=lava-$LAVA_INSTANCE
-    export LAVA_DB_USER=lava-$LAVA_INSTANCE
-    export LAVA_DB_NAME=lava-$LAVA_INSTANCE
-    export LAVA_RABBIT_VHOST=/lava-$LAVA_INSTANCE
+    for install_step in $LAVA_INSTALL_STEPS; do
+        defaults_$install_step
+    done
     # Wizard loop
     while true; do
         echo "Instance Configuration"
@@ -181,6 +180,11 @@ _install() {
 }
 
 
+defaults_user() {
+    export LAVA_SYS_USER=lava-$LAVA_INSTANCE
+}
+
+
 wizard_user() {
     export LAVA_SYS_USER_DESC="User for LAVA instance $LAVA_INSTANCE"
 
@@ -221,6 +225,11 @@ install_user() {
     logger "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
     echo "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
     sudo useradd --system --comment "$LAVA_SYS_USER_DESC" "$LAVA_SYS_USER"
+}
+
+
+defaults_fs() {
+    true
 }
 
 
@@ -307,6 +316,11 @@ install_fs() {
 }
 
 
+defaults_venv() {
+    true
+}
+
+
 wizard_venv() {
     echo
     echo "Python virtual environment configuration"
@@ -366,11 +380,14 @@ install_venv() {
 }
 
 
-wizard_database() {
+defaults_database() {
     export LAVA_DB_NAME="lava-$LAVA_INSTANCE"
     export LAVA_DB_USER="lava-$LAVA_INSTANCE"
     export LAVA_DB_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
+}
 
+
+wizard_database() {
     echo
     echo "PostgreSQL configuration"
     echo "^^^^^^^^^^^^^^^^^^^^^^^^"
@@ -581,6 +598,11 @@ UWSGI_INI
 }
 
 
+defaults_app() {
+    true
+}
+
+
 wizard_app() {
     echo
     echo "LAVA application configuration"
@@ -661,6 +683,11 @@ SETTINGS_CONF
 SETTINGS_CONF
     fi
 fi
+}
+
+
+defaults_config_app() {
+    true
 }
 
 
