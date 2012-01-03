@@ -1496,8 +1496,16 @@ main() {
             echo
             echo "Key commands:"
             echo "    setup   - prepare machine for LAVA (prerequisites)"
-            echo "    install - install LAVA"
-            echo "    upgrade - upgrade LAVA"
+            echo "              (do this once before trying out others)"
+            echo " working with instances:"
+            echo "    install - install LAVA instance"
+            echo "    upgrade - upgrade LAVA instance"
+            echo "    remove  - remove LAVA instance (undoes install)"
+            echo " working with data:"
+            echo "    backup  - backup your data"
+            echo "    restore - restore earlier backup (removes current data)"
+            echo " working at lower level:"
+            echo "    manage  - run lava-server management commands"
             echo
             echo "See the README file for instructions"
             ;;
