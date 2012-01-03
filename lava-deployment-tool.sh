@@ -1389,7 +1389,7 @@ cmd_restore() {
 
 
 cmd_backup() {
-    LAVA_INSTANCE=${1:-lava}
+    LAVA_INSTANCE=${1:-dev}
 
     set -e
 
