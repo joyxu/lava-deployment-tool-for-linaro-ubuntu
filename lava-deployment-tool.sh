@@ -1446,6 +1446,30 @@ cmd_backup() {
 }
 
 
+cmd_manage() {
+    LAVA_INSTANCE=${1:-dev}
+    test -n '$1' && shift
+
+    # Sanity checking, ensure that instance exists
+    if [ \! -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
+        echo "Instance $LAVA_INSTANCE does not exist"
+        return
+    fi
+    _load_configuration "$LAVA_INSTANCE"
+
+    # Enable virtualenv
+    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+
+    set -x
+    lava-server manage \
+        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
+        --instance=$LAVA_INSTANCE \
+        "$@" 
+    set +x
+}
+
+
+
 main() {
     os_check
     if [ $LAVA_SUPPORTED = 0 ]; then
@@ -1483,6 +1507,9 @@ main() {
         install|upgrade|remove)
             LAVA_INSTANCE=${1:-dev}
             cmd_$cmd "$@" # 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
+            ;;
+        manage)
+            cmd_manage "$@"
             ;;
         backup)
             cmd_backup "$@"
