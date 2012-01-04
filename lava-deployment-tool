@@ -725,7 +725,7 @@ install_app() {
 
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
     set -x
-    pip install --upgrade "$LAVA_BUNDLE" || die "Failed to install application bundle"
+    pip install "$LAVA_BUNDLE" || die "Failed to install application bundle"
     set +x
     deactivate
 
