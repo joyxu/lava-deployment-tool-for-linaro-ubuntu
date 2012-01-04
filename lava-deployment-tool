@@ -1348,12 +1348,12 @@ cmd_remove() {
     sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
     sudo rm -f "/etc/apache2/sites-available/$LAVA_INSTANCE.conf" || true
     sudo rm -f "/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf" || true
-    sudo rm -rf "$LAVA_PREFIX/$LAVA_INSTANCE" || true
     sudo -u postgres dropdb "$LAVA_DB_NAME" || true
     sudo -u postgres dropuser "$LAVA_DB_USER" || true
     sudo rabbitmqctl delete_user "$LAVA_RABBIT_USER"
     sudo rabbitmqctl delete_vhost "$LAVA_RABBIT_VHOST"
     sudo userdel "$LAVA_SYS_USER" || true
+    sudo rm -rf "$LAVA_PREFIX/$LAVA_INSTANCE" || true
     set +x
     set +e
 }
