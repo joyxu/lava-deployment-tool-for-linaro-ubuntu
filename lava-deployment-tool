@@ -334,7 +334,7 @@ defaults_venv() {
 }
 
 pkglist_venv() {
-    true
+    echo "https://github.com/zyga/pip/tarball/develop"
 }
 
 
