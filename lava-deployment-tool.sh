@@ -173,6 +173,7 @@ _configure() {
     set -x
 }
 
+
 _install() {
     for install_step in $LAVA_INSTALL_STEPS; do 
         echo "Running installation step $install_step"
@@ -184,6 +185,11 @@ _install() {
 
 defaults_user() {
     export LAVA_SYS_USER=lava-$LAVA_INSTANCE
+}
+
+
+pkglist_user() {
+    true
 }
 
 
@@ -231,6 +237,11 @@ install_user() {
 
 
 defaults_fs() {
+    true
+}
+
+
+pkglist_fs() {
     true
 }
 
@@ -322,6 +333,10 @@ defaults_venv() {
     true
 }
 
+pkglist_venv() {
+    true
+}
+
 
 wizard_venv() {
     echo
@@ -386,6 +401,11 @@ defaults_database() {
     export LAVA_DB_NAME="lava-$LAVA_INSTANCE"
     export LAVA_DB_USER="lava-$LAVA_INSTANCE"
     export LAVA_DB_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
+}
+
+
+pkglist_database() {
+    echo psycopg2 
 }
 
 
@@ -470,6 +490,11 @@ defaults_broker() {
 }
 
 
+pkglist_broker() {
+    true
+}
+
+
 wizard_broker() {
     echo
     echo "RabbitMQ configuration"
@@ -511,6 +536,14 @@ install_broker() {
 defaults_web_hosting() {
     export LAVA_APACHE_VHOST=$(hostname)
     export LAVA_DEV_MODE=no
+}
+
+
+pkglist_web_hosting() {
+    echo "http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz"
+    # TODO: make this optional on LAVA_DEV_MODE
+    echo "django-seatbelt"
+    echo "django-debian"
 }
 
 
@@ -700,6 +733,11 @@ defaults_app() {
 }
 
 
+pkglist_app() {
+    echo "-r $LAVA_REQUIREMENT"
+}
+
+
 wizard_app() {
     echo
     echo "LAVA application configuration"
@@ -790,6 +828,11 @@ fi
 
 
 defaults_config_app() {
+    true
+}
+
+
+pkglist_config_app() {
     true
 }
 
