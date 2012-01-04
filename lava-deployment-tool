@@ -1255,31 +1255,31 @@ cmd_install() {
 
     # Configure everything first (get all the answers)
     _configure "$LAVA_INSTANCE"
-    set -e
-    set -x
     # Roll the installation
     _install
-    set +x
-    set +e
 }
 
 
 cmd_upgrade() {
-    LAVA_INSTANCE=${1:-dev}
-    LAVA_REQUIREMENT=${2:-requirements-trunk.txt}
+    export LAVA_INSTANCE=$1
+    export LAVA_BUNDLE=$2
 
     _banner
+
+    if [ -z "$LAVA_INSTANCE" ]; then
+        echo "You need to pass the name of the instance to create as first argument"
+        return
+    fi
+
+    if [ -z "$LAVA_BUNDLE" ]; then
+        echo "You need to pass the name of the bundle to use as second argument"
+        return
+    fi
 
     # Sanity checking, ensure that instance exist
     if [ \! -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
         echo "Instance $LAVA_INSTANCE does not exist"
         return
-    fi
-
-    if [ \! -e $LAVA_REQUIREMENT ]; then
-        echo "Attempting to download remote requirement file: $LAVA_REQUIREMENT"
-        wget $LAVA_REQUIREMENT -O remote-requirements.txt || die "Unable to download $LAVA_REQUIREMENT" 
-        LAVA_REQUIREMENT=remote-requirements.txt
     fi
 
     _load_configuration "$LAVA_INSTANCE"
