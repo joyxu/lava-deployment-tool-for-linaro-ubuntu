@@ -734,7 +734,7 @@ defaults_app() {
 
 
 pkglist_app() {
-    echo "-r $LAVA_REQUIREMENT"
+    cat $LAVA_REQUIREMENT
 }
 
 
