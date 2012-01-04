@@ -123,7 +123,6 @@ INSTANCE_CONF
 _configure() {
     set +x
     export LAVA_INSTANCE="$1"
-    export LAVA_REQUIREMENT="$2"
     # Defaults
     for install_step in $LAVA_INSTALL_STEPS; do
         defaults_$install_step
@@ -377,23 +376,8 @@ wizard_venv() {
 install_venv() {
     logger "Creating virtualenv using $LAVA_PYTHON for LAVA instance $LAVA_INSTANCE"
 
-    # Create and enable the virtualenv
+    # Create virtualenv
     virtualenv --no-site-packages --distribute $LAVA_PREFIX/$LAVA_INSTANCE -p $LAVA_PYTHON
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
-
-    logger "Installing special version of pip for LAVA instance $LAVA_INSTANCE"
-
-    # Commit a pip-sepukku
-    pip uninstall pip --yes
-
-    # Get a special version of pip
-    git clone git://github.com/zyga/pip.git -b develop $LAVA_PREFIX/$LAVA_INSTANCE/src/pip
-
-    # Install my version of pip that does not crash on editable bzr branches
-    ( cd $LAVA_PREFIX/$LAVA_INSTANCE/src/pip && python setup.py install )
-
-    # Stop using virtualenv
-    deactivate
 }
 
 
@@ -474,12 +458,6 @@ DEFAULT_DATABASE_CONF
         --no-password \
         "$LAVA_DB_NAME" \
         || die "Failed to create a database"
-
-    # Install the database adapter
-    logger "Installing database adapter for LAVA instance $LAVA_INSTANCE"
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
-    pip install psycopg2 || die "Failed to install psycopg2"
-    deactivate
 }
 
 
@@ -541,7 +519,6 @@ defaults_web_hosting() {
 
 pkglist_web_hosting() {
     echo "http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz"
-    # TODO: make this optional on LAVA_DEV_MODE
     echo "django-seatbelt"
     echo "django-debian"
 }
@@ -588,13 +565,9 @@ wizard_web_hosting() {
 install_web_hosting() {
     logger "Installing uWSGI and other hosting parts for LAVA instance $LAVA_INSTANCE"
 
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
-    pip install http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz || die "Unable to install uWSGI"
-    pip install django-seatbelt django-debian || die "Unable to install django-seatbelt and django-debian"
-    deactivate
-
     if [ \! -e /etc/apache2/mods-available/uwsgi.load ]; then
         logger "Building uWSGI apache module..."
+        # FIXME: we may not have this file cached as we used bundle to get it
         ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp && tar zxf $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fuwsgi-$LAVA_UWSGI.tar.gz )
         ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp/uwsgi-$LAVA_UWSGI/apache2 && sudo apxs2 -c -i -a mod_uwsgi.c )
     fi
@@ -748,11 +721,11 @@ wizard_app() {
 
 
 install_app() {
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+    echo "Installing/upgrading application code from $LAVA_BUNDLE file"
 
-    echo "Installing/upgrading application code from $LAVA_REQUIREMENT file"
+    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
     set -x
-    pip install --upgrade --requirement=$LAVA_REQUIREMENT || die "Failed to install application"
+    pip install --upgrade "$LAVA_BUNDLE" || die "Failed to install application bundle"
     set +x
     deactivate
 
@@ -1259,10 +1232,20 @@ _banner() {
 
 
 cmd_install() {
-    LAVA_INSTANCE=${1:-dev}
-    LAVA_REQUIREMENT=${2:-requirements-trunk.txt}
+    export LAVA_INSTANCE=$1
+    export LAVA_BUNDLE=$2
 
     _banner
+
+    if [ -z "$LAVA_INSTANCE" ]; then
+        echo "You need to pass the name of the instance to create as first argument"
+        return
+    fi
+
+    if [ -z "$LAVA_BUNDLE" ]; then
+        echo "You need to pass the name of the bundle to use as second argument"
+        return
+    fi
 
     # Sanity checking, ensure that instance does not exist yet
     if [ -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
@@ -1270,14 +1253,8 @@ cmd_install() {
         return
     fi
 
-    if [ \! -e $LAVA_REQUIREMENT ]; then
-        echo "Attempting to download remote requirement file: $LAVA_REQUIREMENT"
-        wget $LAVA_REQUIREMENT -O remote-requirements.txt || die "Unable to download $LAVA_REQUIREMENT" 
-        LAVA_REQUIREMENT=remote-requirements.txt
-    fi
-
     # Configure everything first (get all the answers)
-    _configure "$LAVA_INSTANCE" "$LAVA_REQUIREMENT"
+    _configure "$LAVA_INSTANCE"
     set -e
     set -x
     # Roll the installation
@@ -1593,7 +1570,6 @@ main() {
             cmd_setup "$@"
             ;;
         install|upgrade|remove)
-            LAVA_INSTANCE=${1:-dev}
             cmd_$cmd "$@" # 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
             ;;
         manage)
