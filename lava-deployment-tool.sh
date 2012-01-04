@@ -24,7 +24,7 @@ export LAVA_SETUP_REQUIRED_VERSION=18
 export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
-LAVA_INSTALL_STEPS="user fs venv database web_hosting app config_app"
+LAVA_INSTALL_STEPS="user fs venv database broker web_hosting app config_app"
 
 
 os_check() {
@@ -500,8 +500,11 @@ wizard_broker() {
 
 
 install_broker() {
-    # TODO: create rabbit users/vhosts here
-    true
+    set -x
+    sudo rabbitmqctl add_user "$LAVA_RABBIT_USER" "$LAVA_RABBIT_PASSWORD"
+    sudo rabbitmqctl add_vhost "$LAVA_RABBIT_VHOST"
+    sudo rabbitmqctl set_permissions -p "$LAVA_RABBIT_VHOST" "$LAVA_RABBIT_USER" ".*" ".*" ".*"
+    set +x
 }
 
 
@@ -740,6 +743,9 @@ install_app() {
     "MOUNT_POINT": "/",
     "LOGIN_URL": "/accounts/login/",
     "LOGIN_REDIRECT_URL": "/",
+    "BROKER_USER": "$LAVA_RABBIT_USER",
+    "BROKER_VHOST": "$LAVA_RABBIT_VHOST",
+    "BROKER_PASSWORD": "$LAVA_RABBIT_PASSWORD",
     "DATAREPORT_DIRS": [
         "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/reports"
     ],
@@ -767,6 +773,9 @@ SETTINGS_CONF
     "MOUNT_POINT": "/",
     "LOGIN_URL": "/accounts/login/",
     "LOGIN_REDIRECT_URL": "/",
+    "BROKER_USER": "$LAVA_RABBIT_USER",
+    "BROKER_VHOST": "$LAVA_RABBIT_VHOST",
+    "BROKER_PASSWORD": "$LAVA_RABBIT_PASSWORD",
     "DATAREPORT_DIRS": [
         "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/reports"
     ],
@@ -1282,6 +1291,8 @@ cmd_remove() {
     echo "We will remove PostgreSQL user: $LAVA_DB_USER"
     echo "We will remove everything in $LAVA_PREFIX/$LAVA_INSTANCE"
     echo "We will remove the apache site $LAVA_INSTANCE.conf"
+    echo "We will remove the RabbitMQ user: $LAVA_RABBITMQ_USER"
+    echo "We will remove the RabbitMQ vhost: $LAVA_RABBITMQ_VHOST"
     echo
     read -p "Type DESTROY to continue: " RESPONSE
     test "$RESPONSE" = 'DESTROY' || return
@@ -1297,6 +1308,8 @@ cmd_remove() {
     sudo rm -rf "$LAVA_PREFIX/$LAVA_INSTANCE" || true
     sudo -u postgres dropdb "$LAVA_DB_NAME" || true
     sudo -u postgres dropuser "$LAVA_DB_USER" || true
+    sudo rabbitmqctl delete_user "$LAVA_RABBIT_USER" "$LAVA_RABBIT_PASSWORD"
+    sudo rabbitmqctl delete_vhost "$LAVA_RABBIT_VHOST"
     sudo userdel "$LAVA_SYS_USER" || true
     set +x
     set +e
