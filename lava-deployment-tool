@@ -24,7 +24,7 @@ export LAVA_SETUP_REQUIRED_VERSION=18
 export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
-LAVA_INSTALL_STEPS="user fs venv database web_hosting app config_app"
+LAVA_INSTALL_STEPS="user fs venv database broker web_hosting app config_app"
 
 
 os_check() {
@@ -82,6 +82,7 @@ LAVA_INSTANCE='$LAVA_INSTANCE'
 LAVA_SYS_USER='$LAVA_SYS_USER'
 # Apache configuration
 LAVA_APACHE_VHOST='$LAVA_APACHE_VHOST'
+LAVA_DEV_MODE='$LAVA_DEV_MODE'
 # PostgreSQL configuration
 LAVA_DB_NAME='$LAVA_DB_NAME'
 LAVA_DB_USER='$LAVA_DB_USER'
@@ -105,6 +106,7 @@ LAVA_INSTANCE='$LAVA_INSTANCE'
 LAVA_SYS_USER='$LAVA_SYS_USER'
 # Apache configuration
 LAVA_APACHE_VHOST='$LAVA_APACHE_VHOST'
+LAVA_DEV_MODE='$LAVA_DEV_MODE'
 # PostgreSQL configuration
 LAVA_DB_NAME='$LAVA_DB_NAME'
 LAVA_DB_USER='$LAVA_DB_USER'
@@ -121,12 +123,10 @@ INSTANCE_CONF
 _configure() {
     set +x
     export LAVA_INSTANCE="$1"
-    export LAVA_REQUIREMENT="$2"
     # Defaults
-    export LAVA_SYS_USER=lava-$LAVA_INSTANCE
-    export LAVA_DB_USER=lava-$LAVA_INSTANCE
-    export LAVA_DB_NAME=lava-$LAVA_INSTANCE
-    export LAVA_RABBIT_VHOST=/lava-$LAVA_INSTANCE
+    for install_step in $LAVA_INSTALL_STEPS; do
+        defaults_$install_step
+    done
     # Wizard loop
     while true; do
         echo "Instance Configuration"
@@ -172,12 +172,23 @@ _configure() {
     set -x
 }
 
+
 _install() {
     for install_step in $LAVA_INSTALL_STEPS; do 
         echo "Running installation step $install_step"
         install_$install_step || die "Failed at $install_step"
     done
     echo "All installation is done"
+}
+
+
+defaults_user() {
+    export LAVA_SYS_USER=lava-$LAVA_INSTANCE
+}
+
+
+pkglist_user() {
+    true
 }
 
 
@@ -221,6 +232,16 @@ install_user() {
     logger "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
     echo "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
     sudo useradd --system --comment "$LAVA_SYS_USER_DESC" "$LAVA_SYS_USER"
+}
+
+
+defaults_fs() {
+    true
+}
+
+
+pkglist_fs() {
+    true
 }
 
 
@@ -307,6 +328,15 @@ install_fs() {
 }
 
 
+defaults_venv() {
+    true
+}
+
+pkglist_venv() {
+    echo "https://github.com/zyga/pip/tarball/develop"
+}
+
+
 wizard_venv() {
     echo
     echo "Python virtual environment configuration"
@@ -346,31 +376,24 @@ wizard_venv() {
 install_venv() {
     logger "Creating virtualenv using $LAVA_PYTHON for LAVA instance $LAVA_INSTANCE"
 
-    # Create and enable the virtualenv
+    # Create virtualenv
     virtualenv --no-site-packages --distribute $LAVA_PREFIX/$LAVA_INSTANCE -p $LAVA_PYTHON
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+}
 
-    logger "Installing special version of pip for LAVA instance $LAVA_INSTANCE"
 
-    # Commit a pip-sepukku
-    pip uninstall pip --yes
+defaults_database() {
+    export LAVA_DB_NAME="lava-$LAVA_INSTANCE"
+    export LAVA_DB_USER="lava-$LAVA_INSTANCE"
+    export LAVA_DB_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
+}
 
-    # Get a special version of pip
-    git clone git://github.com/zyga/pip.git -b develop $LAVA_PREFIX/$LAVA_INSTANCE/src/pip
 
-    # Install my version of pip that does not crash on editable bzr branches
-    ( cd $LAVA_PREFIX/$LAVA_INSTANCE/src/pip && python setup.py install )
-
-    # Stop using virtualenv
-    deactivate
+pkglist_database() {
+    echo psycopg2 
 }
 
 
 wizard_database() {
-    export LAVA_DB_NAME="lava-$LAVA_INSTANCE"
-    export LAVA_DB_USER="lava-$LAVA_INSTANCE"
-    export LAVA_DB_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
-
     echo
     echo "PostgreSQL configuration"
     echo "^^^^^^^^^^^^^^^^^^^^^^^^"
@@ -435,41 +458,137 @@ DEFAULT_DATABASE_CONF
         --no-password \
         "$LAVA_DB_NAME" \
         || die "Failed to create a database"
+}
 
-    # Install the database adapter
-    logger "Installing database adapter for LAVA instance $LAVA_INSTANCE"
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
-    pip install psycopg2 || die "Failed to install psycopg2"
-    deactivate
+
+defaults_broker() {
+    export LAVA_RABBIT_VHOST="/lava-$LAVA_INSTANCE"
+    export LAVA_RABBIT_USER="lava-$LAVA_INSTANCE"
+    export LAVA_RABBIT_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
+}
+
+
+pkglist_broker() {
+    true
+}
+
+
+wizard_broker() {
+    echo
+    echo "RabbitMQ configuration"
+    echo "^^^^^^^^^^^^^^^^^^^^^^"
+    echo
+    echo "We will use RabbitMQ to coordinate the distributed state"
+    echo "of various LAVA components. For isolation each instance"
+    echo "has a separate 'virtual host' created inside RabbitMQ'"
+    echo "and runs as a separate RabbitMQ user (this is not a"
+    echo "system user account) and password"
+    echo
+    echo "Broker vhost: $LAVA_RABBIT_VHOST"
+    echo "Broker user:  $LAVA_RABBIT_USER"
+    echo "   password:  $LAVA_RABBIT_PASSWORD (automatically generated)"
+    echo
+    echo "(this is just a notification, it is not configurable)"
+    echo
+    echo "next    - continue"
+
+    read -p "Please decide what to do: " RESPONSE
+
+    case "$RESPONSE" in
+        next)
+            return 0  # loop complete
+    esac
+    return 1  # another loop please
+}
+
+
+install_broker() {
+    set -x
+    sudo rabbitmqctl add_user "$LAVA_RABBIT_USER" "$LAVA_RABBIT_PASSWORD"
+    sudo rabbitmqctl add_vhost "$LAVA_RABBIT_VHOST"
+    sudo rabbitmqctl set_permissions -p "$LAVA_RABBIT_VHOST" "$LAVA_RABBIT_USER" ".*" ".*" ".*"
+    set +x
+}
+
+
+defaults_web_hosting() {
+    export LAVA_APACHE_VHOST=$(hostname)
+    export LAVA_DEV_MODE=no
+}
+
+
+pkglist_web_hosting() {
+    echo "http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz"
+    echo "django-seatbelt"
+    echo "django-debian"
 }
 
 
 wizard_web_hosting() {
-    export LAVA_APACHE_VHOST=$(hostname)
-
     echo
     echo "Apache and uWSGI configuration"
     echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
     echo
-    return 0
+    echo "We will use Apache 2 to serve static application files"
+    echo "Apache will also use mod uWSGI to talk to the application"
+    echo "servers running LAVA code"
+    echo
+    echo "Normally we use django-seatbelt to prevent importing code"
+    echo "from outside of each instance (for isolation and reliability)"
+    echo "but this may be annoying when you do development and have"
+    echo "some code in your \$HOME directory."
+    echo
+    echo "Developer mode: $LAVA_DEV_MODE"
+    echo
+    echo "next    - continue"
+    echo "dev     - toggle developer mode"
+
+    read -p "Please decide what to do: " RESPONSE
+
+    case "$RESPONSE" in
+        next)
+            return 0  # loop complete
+            ;;
+        dev)
+            if [ $LAVA_DEV_MODE = yes ]; then
+                LAVA_DEV_MODE=no
+            else
+                LAVA_DEV_MODE=yes
+            fi
+            return 1
+            ;;
+    esac
+    return 1  # another loop please
 }
 
 
 install_web_hosting() {
     logger "Installing uWSGI and other hosting parts for LAVA instance $LAVA_INSTANCE"
 
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
-    pip install http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz || die "Unable to install uWSGI"
-    pip install django-seatbelt django-debian || die "Unable to install django-seatbelt and django-debian"
-    deactivate
-
     if [ \! -e /etc/apache2/mods-available/uwsgi.load ]; then
         logger "Building uWSGI apache module..."
+        # FIXME: we may not have this file cached as we used bundle to get it
         ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp && tar zxf $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fuwsgi-$LAVA_UWSGI.tar.gz )
         ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp/uwsgi-$LAVA_UWSGI/apache2 && sudo apxs2 -c -i -a mod_uwsgi.c )
     fi
 
-    cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/lava-server.wsgi <<INSTANCE_WSGI
+    if [ "$LAVA_DEV_MODE" = "yes" ]; then
+        cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/lava-server.wsgi <<INSTANCE_WSGI
+# This file was automatically generated by lava-deployment-tool.sh
+import os
+
+# Force django to use the specified settings module.
+os.environ['DJANGO_SETTINGS_MODULE'] = 'lava_server.settings.debian'
+# And force django-debian to look at our instance-specific configuration directory
+os.environ['DJANGO_DEBIAN_SETTINGS_TEMPLATE'] = '$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/{filename}.conf'
+
+# Setup django WSGI handler
+import django.core.handlers.wsgi
+
+application = django.core.handlers.wsgi.WSGIHandler()
+INSTANCE_WSGI
+    else
+        cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/lava-server.wsgi <<INSTANCE_WSGI
 # This file was automatically generated by lava-deployment-tool.sh
 import os
 import sys
@@ -517,6 +636,7 @@ import django.core.handlers.wsgi
 # but I found that in the docs to uWSGI.
 application = django.core.handlers.wsgi.WSGIHandler()
 INSTANCE_WSGI
+    fi
 
     # Create apache2 site
     cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/sites-available/lava-server.conf <<INSTANCE_SITE
@@ -581,6 +701,16 @@ UWSGI_INI
 }
 
 
+defaults_app() {
+    true
+}
+
+
+pkglist_app() {
+    cat $LAVA_REQUIREMENT
+}
+
+
 wizard_app() {
     echo
     echo "LAVA application configuration"
@@ -591,11 +721,11 @@ wizard_app() {
 
 
 install_app() {
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+    echo "Installing/upgrading application code from $LAVA_BUNDLE file"
 
-    echo "Installing/upgrading application code from $LAVA_REQUIREMENT file"
+    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
     set -x
-    pip install --upgrade --requirement=$LAVA_REQUIREMENT || die "Failed to install application"
+    pip install "$LAVA_BUNDLE" || die "Failed to install application bundle"
     set +x
     deactivate
 
@@ -624,6 +754,9 @@ install_app() {
     "MOUNT_POINT": "/",
     "LOGIN_URL": "/accounts/login/",
     "LOGIN_REDIRECT_URL": "/",
+    "BROKER_USER": "$LAVA_RABBIT_USER",
+    "BROKER_VHOST": "$LAVA_RABBIT_VHOST",
+    "BROKER_PASSWORD": "$LAVA_RABBIT_PASSWORD",
     "DATAREPORT_DIRS": [
         "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/reports"
     ],
@@ -651,6 +784,9 @@ SETTINGS_CONF
     "MOUNT_POINT": "/",
     "LOGIN_URL": "/accounts/login/",
     "LOGIN_REDIRECT_URL": "/",
+    "BROKER_USER": "$LAVA_RABBIT_USER",
+    "BROKER_VHOST": "$LAVA_RABBIT_VHOST",
+    "BROKER_PASSWORD": "$LAVA_RABBIT_PASSWORD",
     "DATAREPORT_DIRS": [
         "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/reports"
     ],
@@ -661,6 +797,16 @@ SETTINGS_CONF
 SETTINGS_CONF
     fi
 fi
+}
+
+
+defaults_config_app() {
+    true
+}
+
+
+pkglist_config_app() {
+    true
 }
 
 
@@ -1086,10 +1232,20 @@ _banner() {
 
 
 cmd_install() {
-    LAVA_INSTANCE=${1:-dev}
-    LAVA_REQUIREMENT=${2:-requirements-trunk.txt}
+    export LAVA_INSTANCE=$1
+    export LAVA_BUNDLE=$2
 
     _banner
+
+    if [ -z "$LAVA_INSTANCE" ]; then
+        echo "You need to pass the name of the instance to create as first argument"
+        return
+    fi
+
+    if [ -z "$LAVA_BUNDLE" ]; then
+        echo "You need to pass the name of the bundle to use as second argument"
+        return
+    fi
 
     # Sanity checking, ensure that instance does not exist yet
     if [ -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
@@ -1097,39 +1253,33 @@ cmd_install() {
         return
     fi
 
-    if [ \! -e $LAVA_REQUIREMENT ]; then
-        echo "Attempting to download remote requirement file: $LAVA_REQUIREMENT"
-        wget $LAVA_REQUIREMENT -O remote-requirements.txt || die "Unable to download $LAVA_REQUIREMENT" 
-        LAVA_REQUIREMENT=remote-requirements.txt
-    fi
-
     # Configure everything first (get all the answers)
-    _configure "$LAVA_INSTANCE" "$LAVA_REQUIREMENT"
-    set -e
-    set -x
+    _configure "$LAVA_INSTANCE"
     # Roll the installation
     _install
-    set +x
-    set +e
 }
 
 
 cmd_upgrade() {
-    LAVA_INSTANCE=${1:-dev}
-    LAVA_REQUIREMENT=${2:-requirements-trunk.txt}
+    export LAVA_INSTANCE=$1
+    export LAVA_BUNDLE=$2
 
     _banner
+
+    if [ -z "$LAVA_INSTANCE" ]; then
+        echo "You need to pass the name of the instance to create as first argument"
+        return
+    fi
+
+    if [ -z "$LAVA_BUNDLE" ]; then
+        echo "You need to pass the name of the bundle to use as second argument"
+        return
+    fi
 
     # Sanity checking, ensure that instance exist
     if [ \! -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
         echo "Instance $LAVA_INSTANCE does not exist"
         return
-    fi
-
-    if [ \! -e $LAVA_REQUIREMENT ]; then
-        echo "Attempting to download remote requirement file: $LAVA_REQUIREMENT"
-        wget $LAVA_REQUIREMENT -O remote-requirements.txt || die "Unable to download $LAVA_REQUIREMENT" 
-        LAVA_REQUIREMENT=remote-requirements.txt
     fi
 
     _load_configuration "$LAVA_INSTANCE"
@@ -1161,6 +1311,8 @@ cmd_remove() {
     echo "We will remove PostgreSQL user: $LAVA_DB_USER"
     echo "We will remove everything in $LAVA_PREFIX/$LAVA_INSTANCE"
     echo "We will remove the apache site $LAVA_INSTANCE.conf"
+    echo "We will remove the RabbitMQ user: $LAVA_RABBITMQ_USER"
+    echo "We will remove the RabbitMQ vhost: $LAVA_RABBITMQ_VHOST"
     echo
     read -p "Type DESTROY to continue: " RESPONSE
     test "$RESPONSE" = 'DESTROY' || return
@@ -1173,10 +1325,12 @@ cmd_remove() {
     sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
     sudo rm -f "/etc/apache2/sites-available/$LAVA_INSTANCE.conf" || true
     sudo rm -f "/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf" || true
-    sudo rm -rf "$LAVA_PREFIX/$LAVA_INSTANCE" || true
     sudo -u postgres dropdb "$LAVA_DB_NAME" || true
     sudo -u postgres dropuser "$LAVA_DB_USER" || true
+    sudo rabbitmqctl delete_user "$LAVA_RABBIT_USER"
+    sudo rabbitmqctl delete_vhost "$LAVA_RABBIT_VHOST"
     sudo userdel "$LAVA_SYS_USER" || true
+    sudo rm -rf "$LAVA_PREFIX/$LAVA_INSTANCE" || true
     set +x
     set +e
 }
@@ -1268,7 +1422,7 @@ cmd_restore() {
 
 
 cmd_backup() {
-    LAVA_INSTANCE=${1:-lava}
+    LAVA_INSTANCE=${1:-dev}
 
     set -e
 
@@ -1325,6 +1479,54 @@ cmd_backup() {
 }
 
 
+cmd_manage() {
+    LAVA_INSTANCE=${1:-dev}
+    test -n '$1' && shift
+
+    # Sanity checking, ensure that instance exists
+    if [ \! -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
+        echo "Instance $LAVA_INSTANCE does not exist"
+        return
+    fi
+    _load_configuration "$LAVA_INSTANCE"
+
+    # Enable virtualenv
+    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+
+    set -x
+    lava-server manage \
+        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
+        --instance=$LAVA_INSTANCE \
+        "$@" 
+    set +x
+}
+
+
+cmd_bundle() {
+    LAVA_REQUIREMENT=${1:-requirements.txt}
+    LAVA_BUNDLE=${2:-lava.pybundle}
+    local step
+    for step in $LAVA_INSTALL_STEPS; do
+        defaults_$step
+    done
+    LAVA_FULL_REQUIREMENT=$(mktemp)
+    for step in $LAVA_INSTALL_STEPS; do
+        pkglist_$step >> "$LAVA_FULL_REQUIREMENT"
+    done
+    echo "The resulting file can be copied for off-line installation"
+    echo "Do you wnt to create $LAVA_BUNDLE with the following packages:"
+    echo
+    cat "$LAVA_FULL_REQUIREMENT"
+    echo
+    read -p "Type BUNDLE to continue: " RESPONSE
+    test "$RESPONSE" = 'BUNDLE' || return
+    set -x
+    pip bundle "$LAVA_BUNDLE" --timeout=30 --use-mirrors --requirement="$LAVA_FULL_REQUIREMENT" || die "Failed to create bundle"
+    set +x
+    rm -f "$LAVA_FULL_REQUIREMENT"
+}
+
+
 main() {
     os_check
     if [ $LAVA_SUPPORTED = 0 ]; then
@@ -1351,8 +1553,16 @@ main() {
             echo
             echo "Key commands:"
             echo "    setup   - prepare machine for LAVA (prerequisites)"
-            echo "    install - install LAVA"
-            echo "    upgrade - upgrade LAVA"
+            echo "              (do this once before trying out others)"
+            echo " working with instances:"
+            echo "    install - install LAVA instance"
+            echo "    upgrade - upgrade LAVA instance"
+            echo "    remove  - remove LAVA instance (undoes install)"
+            echo " working with data:"
+            echo "    backup  - backup your data"
+            echo "    restore - restore earlier backup (removes current data)"
+            echo " working at lower level:"
+            echo "    manage  - run lava-server management commands"
             echo
             echo "See the README file for instructions"
             ;;
@@ -1360,8 +1570,10 @@ main() {
             cmd_setup "$@"
             ;;
         install|upgrade|remove)
-            LAVA_INSTANCE=${1:-dev}
             cmd_$cmd "$@" # 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
+            ;;
+        manage)
+            cmd_manage "$@"
             ;;
         backup)
             cmd_backup "$@"
@@ -1380,6 +1592,9 @@ main() {
             $cmd
             set +x
             set +e
+            ;;
+        bundle)
+            cmd_bundle "$@"
             ;;
         *)
             echo "Unknown command: $cmd, try help"
