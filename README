@@ -8,6 +8,21 @@ not, however, designed for multi-machine installation, including cloud
 deployment. For that it is likely we will turn to Juju
 (https://juju.ubuntu.com/)
 
+Quickstart
+^^^^^^^^^^
+For the impatient, or those just looking for a cheat sheet but know what they
+are doing otherwise, here are the basic set of commands to get an instance
+up and running based on the requirements-mini file provided as an example, 
+which only installs lava-server.
+
+ $ ./lava-deployment-tool setup
+ $ ./lava-deployment-tool bundle requirements-mini.txt
+ $ ./lava-deployment-tool install testinstance lava.pybundle
+ $ sudo start lava-instance LAVA_INSTANCE=testinstance
+
+Assuming everything went well, you should be able to point a web browser
+at the system you did this on and see the lava-server default page.
+
 
 Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
