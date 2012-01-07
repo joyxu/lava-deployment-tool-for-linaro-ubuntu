@@ -1555,6 +1555,8 @@ main() {
             echo "    setup   - prepare machine for LAVA (prerequisites)"
             echo "              (do this once before trying out others)"
             echo " working with instances:"
+            echo "    bundle  - create a bundle in preparation for installing"
+            echo "              or updating"
             echo "    install - install LAVA instance"
             echo "    upgrade - upgrade LAVA instance"
             echo "    remove  - remove LAVA instance (undoes install)"

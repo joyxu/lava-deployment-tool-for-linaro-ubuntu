@@ -8,6 +8,21 @@ not, however, designed for multi-machine installation, including cloud
 deployment. For that it is likely we will turn to Juju
 (https://juju.ubuntu.com/)
 
+Quickstart
+^^^^^^^^^^
+For the impatient, or those just looking for a cheat sheet but know what they
+are doing otherwise, here are the basic set of commands to get an instance
+up and running based on the requirements-mini file provided as an example, 
+which only installs lava-server.
+
+ $ ./lava-deployment-tool setup
+ $ ./lava-deployment-tool bundle requirements-mini.txt
+ $ ./lava-deployment-tool install testinstance lava.pybundle
+ $ sudo start lava-instance LAVA_INSTANCE=testinstance
+
+Assuming everything went well, you should be able to point a web browser
+at the system you did this on and see the lava-server default page.
+
 
 Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
@@ -39,7 +54,7 @@ extensions for python.
 
 This step is largely automated. To perform it run this command:
 
-$ ./lava-deployment-tool.sh setup
+$ ./lava-deployment-tool setup
 
 This step also prepares file-system places for LAVA. In particular it creates
 /srv/lava/ where all LAVA instances are later stored.
@@ -48,15 +63,24 @@ Creating LAVA instance
 ^^^^^^^^^^^^^^^^^^^^^^
 
 You can create multiple LAVA instances on a single machine. Being able to do
-so is very valuable for testing and developing LAVA itself. To create a new
-instance run this command:
+so is very valuable for testing and developing LAVA itself. Before installing
+you must first create a bundle of sources you wish to install.  This simply 
+downloads all the things you intend to install into a single, local archive
+so that installation or updating is not impacted by any problems getting the
+sources later.  This also enables offline installs, or installs behind a
+restrictive firewall by allowing you to download the bundle in advance.
+To create the bundle, run:
 
-$ ./lava-deployment-tool.sh install NAME URL-to-requirements
+$ ./lava-deployment-tool URL_to_requirements [bundle_file_name]
+If you do not specify the bundle_file_name, it will use the name 'lava.pybundle'
+
+To create a new instance run this command:
+
+$ ./lava-deployment-tool install NAME BUNDLE
 
 This will create a fresh instance called NAME, the instance will be composed of
-the parts specified in the requirements file (specified by the URL). If the
-requirements file is already present on the local filesystem simple pass its
-pathname. LAVA is modular and the requirements file.
+the software specified in the requirements file that was used to build the
+bundle and associated dependencies.
 
 The script produces verbose output, at the end it should say that everything
 went fine.
@@ -73,7 +97,7 @@ LAVA instances store persistent data in two locations:
 Backing up those two items is sufficient to preserve the entire system
 state.  You can do this by running:
 
-$ lava-deployment-tool.sh backup $LAVA_INSTANCE
+$ lava-deployment-tool backup $LAVA_INSTANCE
 
 which will create a backup with an ID based on the current date and
 time in a directory named
@@ -95,7 +119,7 @@ Restoring from backup
 
 Running the command
 
-$ lava-deployment-tool.sh restore $LAVA_INSTANCE $SNAPSHOT_ID
+$ lava-deployment-tool restore $LAVA_INSTANCE $SNAPSHOT_ID
 
 will restore the given snapshot of the named instance.  This will
 first erase the database and media files of the named instance, so be
@@ -104,11 +128,11 @@ careful what you type!
 You can restore an instance from a backup taken from a distinct
 instance with a command like:
 
-$ lava-deployment-tool.sh restore $TARGET_INSTANCE $SOURCE_INSTANCE/$SNAPSHOT_ID
+$ lava-deployment-tool restore $TARGET_INSTANCE $SOURCE_INSTANCE/$SNAPSHOT_ID
 
 Currently to restore from a backup taken on a different machine, you
 have to put it under /srv/lava/backups, then run an appropriate
-"lava-deployment-tool.sh restore" command (we will hopefully make this
+"lava-deployment-tool restore" command (we will hopefully make this
 more natural soon).
 
 You cannot restore to an instance while it is running.
@@ -153,9 +177,14 @@ Apache. During that moment you may encounter a very brief failure to resolve
 some of the static assets (typically images, cascading style sheets and
 javascript libraries)
 
+Prior to upgrading and instance, you will need to build a new bundle based
+on your new requirements file:
+
+$ ./lava-deployment-tool bundle URL-to-requirements [bundle_file_name]
+
 To upgrade an existing instance run the following command:
 
-$ ./lava-deployment-tool.sh upgrade NAME URL-to-requirements
+$ ./lava-deployment-tool upgrade NAME BUNDLE
 
 Again the NAME and URL-to-requirements have the same meaning as in the
 install command mentioned in preceding chapter.
