@@ -1227,7 +1227,7 @@ pre-start script
         # LAVA_SCHEDULER_ENABLED is set and set to 'no', to be most
         # compatible with the previous behaviour of always running the
         # scheduler.
-        if [ "x$LAVA_SCHEDULER_ENABLED" = "xno" ]; then
+        if [ "x\$LAVA_SCHEDULER_ENABLED" = "xno" ]; then
             stop
         else
             # Announce uWSGI becoming online
