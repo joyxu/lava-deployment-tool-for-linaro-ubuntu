@@ -972,7 +972,6 @@ pre-start script
     if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
         stop
     else
-        # Announce uWSGI becoming online
         logger "LAVA instance (\$LAVA_INSTANCE) starting..."
     fi
 end script
@@ -1129,7 +1128,6 @@ pre-start script
     if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
         stop
     else
-        # Announce uWSGI becoming online
         logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler starting..."
     fi
 end script
@@ -1176,7 +1174,6 @@ pre-start script
     if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
         stop
     else
-        # Announce uWSGI becoming online
         logger "LAVA instance (\$LAVA_INSTANCE) celery cam starting..."
     fi
 end script
@@ -1230,7 +1227,6 @@ pre-start script
         if [ "x\$LAVA_SCHEDULER_ENABLED" = "xno" ]; then
             stop
         else
-            # Announce uWSGI becoming online
             logger "LAVA instance (\$LAVA_INSTANCE) scheduler starting..."
         fi
     fi
