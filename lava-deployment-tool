@@ -36,12 +36,12 @@ os_check() {
                     # FIXME: Lucid is not supported
                     export LAVA_SUPPORTED=0
                     # Required system packages
-                    LAVA_PKG_LIST="python-virtualenv git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
+                    LAVA_PKG_LIST="whiptail python-virtualenv git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
                     ;;
                 oneiric)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="python-virtualenv git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
+                    LAVA_PKG_LIST="whiptail python-virtualenv git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
                     ;;
             esac
             ;;
@@ -91,6 +91,8 @@ LAVA_DB_PASSWORD='$LAVA_DB_PASSWORD'
 LAVA_RABBIT_VHOST='$LAVA_RABBIT_VHOST'
 LAVA_RABBIT_USER='$LAVA_RABBIT_USER'
 LAVA_RABBIT_PASSWORD='$LAVA_RABBIT_PASSWORD'
+# Scheduler configuration
+LAVA_SCHEDULER_ENABLED='$LAVA_SCHEDULER_ENABLED'
 INSTANCE_CONF
 }
 
@@ -115,6 +117,8 @@ LAVA_DB_PASSWORD='$LAVA_DB_PASSWORD'
 LAVA_RABBIT_VHOST='$LAVA_RABBIT_VHOST'
 LAVA_RABBIT_USER='$LAVA_RABBIT_USER'
 LAVA_RABBIT_PASSWORD='$LAVA_RABBIT_PASSWORD'
+# Scheduler configuration
+LAVA_SCHEDULER_ENABLED='$LAVA_SCHEDULER_ENABLED'
 INSTANCE_CONF
 }
 
@@ -801,7 +805,7 @@ fi
 
 
 defaults_config_app() {
-    true
+    export LAVA_SCHEDULER_ENABLED=yes
 }
 
 
@@ -811,9 +815,8 @@ pkglist_config_app() {
 
 
 wizard_config_app() {
-    echo "Post-installation actions"
-    echo "^^^^^^^^^^^^^^^^^^^^^^^^^"
-    echo
+    local _question="Do you want to enable the scheduler in this instance?"
+    whiptail --title "Enable the scheduler?" --yesno $_question 10 40 && LAVA_SCHEDULER_ENABLED=yes || LAVA_SCHEDULER_ENABLED=no
     return 0
 }
 
@@ -821,6 +824,15 @@ wizard_config_app() {
 install_config_app() {
     # Enable virtualenv
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+
+    if [ "${LAVA_SCHEDULER_ENABLED+x}" = "x" ]; then
+        echo "Setting LAVA_SCHEDULER_ENABLED to 'yes'..."
+        # LAVA_SCHEDULER_ENABLED was not in the config.
+        # Set it to 'yes' as that was the assumed behaviour before
+        # LAVA_SCHEDULER_ENABLED was introduced.
+        export LAVA_SCHEDULER_ENABLED='yes'
+        _save_config
+    fi
 
     echo "Building cache of static files..."
     set -x
@@ -1210,8 +1222,13 @@ pre-start script
     if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
         stop
     else
-        # Announce uWSGI becoming online
-        logger "LAVA instance (\$LAVA_INSTANCE) scheduler starting..."
+        . $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+        if [ "x$LAVA_SCHEDULER_ENABLED" = "xno" ]; then
+            stop
+        else
+            # Announce uWSGI becoming online
+            logger "LAVA instance (\$LAVA_INSTANCE) scheduler starting..."
+        fi
     fi
 end script
 
