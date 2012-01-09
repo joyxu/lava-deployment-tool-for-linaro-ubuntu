@@ -1223,6 +1223,10 @@ pre-start script
         stop
     else
         . $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+        # We only prevent the scheduler from running if
+        # LAVA_SCHEDULER_ENABLED is set and set to 'no', to be most
+        # compatible with the previous behaviour of always running the
+        # scheduler.
         if [ "x$LAVA_SCHEDULER_ENABLED" = "xno" ]; then
             stop
         else
