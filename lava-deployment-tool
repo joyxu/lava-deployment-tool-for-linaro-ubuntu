@@ -825,11 +825,11 @@ install_config_app() {
     # Enable virtualenv
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
 
-    if [ "${LAVA_SCHEDULER_ENABLED+x}" = "x" ]; then
-        echo "Setting LAVA_SCHEDULER_ENABLED to 'yes'..."
+    if [ "${LAVA_SCHEDULER_ENABLED-x}" = "x" ]; then
         # LAVA_SCHEDULER_ENABLED was not in the config.
         # Set it to 'yes' as that was the assumed behaviour before
         # LAVA_SCHEDULER_ENABLED was introduced.
+        echo "Setting LAVA_SCHEDULER_ENABLED to 'yes'..."
         export LAVA_SCHEDULER_ENABLED='yes'
         _save_config
     fi
