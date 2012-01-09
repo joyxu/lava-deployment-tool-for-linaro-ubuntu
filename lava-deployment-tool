@@ -18,7 +18,7 @@ LAVA_PYTHON=python2.6
 LAVA_UWSGI=0.9.9.2
 
 # Current version of setup required by lava (global state)
-export LAVA_SETUP_REQUIRED_VERSION=18
+export LAVA_SETUP_REQUIRED_VERSION=19
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -933,7 +933,7 @@ script
 # TODO: Check if the instance should start automatically on boot
         if [ -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
             start lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
-        fi 
+        fi
     done
 end script
 LAVA_CONF
@@ -956,7 +956,13 @@ instance \$LAVA_INSTANCE
 export LAVA_INSTANCE
 
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        # Announce uWSGI becoming online
+        logger "LAVA instance (\$LAVA_INSTANCE) starting..."
+    fi
 end script
 
 post-start script
@@ -992,7 +998,7 @@ stop on stopping lava-instance
 # We want each worker to respawn if it gets hurt.
 respawn
 
-# Announce activity 
+# Announce activity
 pre-start script
     # Don't start unless the instance configuration file is present
     if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
@@ -1000,7 +1006,7 @@ pre-start script
     else
         # Announce uWSGI becoming online
         logger "LAVA instance (\$LAVA_INSTANCE) uWSGI starting..."
-    fi 
+    fi
 end script
 
 post-start script
@@ -1054,7 +1060,13 @@ respawn
 
 # Announce workers becoming online
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery worker starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        # Announce uWSGI becoming online
+        logger "LAVA instance (\$LAVA_INSTANCE) celery worker starting..."
+    fi
 end script
 
 post-start script
@@ -1101,7 +1113,13 @@ respawn
 
 # Announce workers becoming online
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        # Announce uWSGI becoming online
+        logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler starting..."
+    fi
 end script
 
 post-start script
@@ -1116,7 +1134,7 @@ post-stop script
     logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler stopped"
 end script
 
-# Run celery beat scheduler 
+# Run celery beat scheduler
 script
 . $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
 exec sudo -u \$LAVA_INSTANCE VIRTUAL_ENV=\$VIRTUAL_ENV PATH=\$PATH $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerybeat --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerybeat.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerybeat.pid --schedule=$LAVA_PREFIX/\$LAVA_INSTANCE/var/lib/lava-celery/celerybeat-schedule
@@ -1142,7 +1160,13 @@ respawn
 
 # Announce workers becoming online
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery cam starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        # Announce uWSGI becoming online
+        logger "LAVA instance (\$LAVA_INSTANCE) celery cam starting..."
+    fi
 end script
 
 post-start script
@@ -1157,7 +1181,7 @@ post-stop script
     logger "LAVA instance (\$LAVA_INSTANCE) celery cam stopped"
 end script
 
-# Run celery camera 
+# Run celery camera
 script
 . $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
 exec sudo -u \$LAVA_INSTANCE VIRTUAL_ENV=\$VIRTUAL_ENV PATH=\$PATH $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerycam --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerycam.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerycam.pid
@@ -1182,7 +1206,13 @@ respawn
 
 # Announce workers becoming online
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) scheduler starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        # Announce uWSGI becoming online
+        logger "LAVA instance (\$LAVA_INSTANCE) scheduler starting..."
+    fi
 end script
 
 post-start script
