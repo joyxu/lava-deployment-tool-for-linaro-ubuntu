@@ -1311,8 +1311,8 @@ cmd_remove() {
     echo "We will remove PostgreSQL user: $LAVA_DB_USER"
     echo "We will remove everything in $LAVA_PREFIX/$LAVA_INSTANCE"
     echo "We will remove the apache site $LAVA_INSTANCE.conf"
-    echo "We will remove the RabbitMQ user: $LAVA_RABBITMQ_USER"
-    echo "We will remove the RabbitMQ vhost: $LAVA_RABBITMQ_VHOST"
+    echo "We will remove the RabbitMQ user: $LAVA_RABBIT_USER"
+    echo "We will remove the RabbitMQ vhost: $LAVA_RABBIT_VHOST"
     echo
     read -p "Type DESTROY to continue: " RESPONSE
     test "$RESPONSE" = 'DESTROY' || return
