@@ -816,7 +816,7 @@ pkglist_config_app() {
 
 wizard_config_app() {
     local _question="Do you want to enable the scheduler in this instance?"
-    whiptail --title "Enable the scheduler?" --yesno $_question 10 40 && LAVA_SCHEDULER_ENABLED=yes || LAVA_SCHEDULER_ENABLED=no
+    whiptail --title "Enable the scheduler?" --yesno "$_question" 10 40 && LAVA_SCHEDULER_ENABLED=yes || LAVA_SCHEDULER_ENABLED=no
     return 0
 }
 
