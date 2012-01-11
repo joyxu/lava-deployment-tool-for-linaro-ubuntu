@@ -1447,8 +1447,6 @@ cmd_backup() {
 
     export PGPASSWORD=$dbpass
 
-    set -x
-
     snapshot_id=$(TZ=UTC date +%Y-%m-%dT%H-%M-%SZ)
 
     echo "Making backup with id: $snapshot_id"
@@ -1456,6 +1454,8 @@ cmd_backup() {
     destdir="$LAVA_ROOT/backups/$LAVA_INSTANCE/$snapshot_id"
 
     mkdir -p "$destdir"
+
+    set -x
 
     echo "Creating database snapshot..."
 
