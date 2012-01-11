@@ -18,7 +18,7 @@ LAVA_PYTHON=python2.6
 LAVA_UWSGI=0.9.9.2
 
 # Current version of setup required by lava (global state)
-export LAVA_SETUP_REQUIRED_VERSION=18
+export LAVA_SETUP_REQUIRED_VERSION=19
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -36,12 +36,12 @@ os_check() {
                     # FIXME: Lucid is not supported
                     export LAVA_SUPPORTED=0
                     # Required system packages
-                    LAVA_PKG_LIST="python-virtualenv git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
+                    LAVA_PKG_LIST="whiptail python-virtualenv git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
                     ;;
                 oneiric)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="python-virtualenv git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
+                    LAVA_PKG_LIST="whiptail python-virtualenv git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
                     ;;
             esac
             ;;
@@ -91,6 +91,8 @@ LAVA_DB_PASSWORD='$LAVA_DB_PASSWORD'
 LAVA_RABBIT_VHOST='$LAVA_RABBIT_VHOST'
 LAVA_RABBIT_USER='$LAVA_RABBIT_USER'
 LAVA_RABBIT_PASSWORD='$LAVA_RABBIT_PASSWORD'
+# Scheduler configuration
+LAVA_SCHEDULER_ENABLED='$LAVA_SCHEDULER_ENABLED'
 INSTANCE_CONF
 }
 
@@ -115,6 +117,8 @@ LAVA_DB_PASSWORD='$LAVA_DB_PASSWORD'
 LAVA_RABBIT_VHOST='$LAVA_RABBIT_VHOST'
 LAVA_RABBIT_USER='$LAVA_RABBIT_USER'
 LAVA_RABBIT_PASSWORD='$LAVA_RABBIT_PASSWORD'
+# Scheduler configuration
+LAVA_SCHEDULER_ENABLED='$LAVA_SCHEDULER_ENABLED'
 INSTANCE_CONF
 }
 
@@ -801,7 +805,7 @@ fi
 
 
 defaults_config_app() {
-    true
+    export LAVA_SCHEDULER_ENABLED=yes
 }
 
 
@@ -811,9 +815,8 @@ pkglist_config_app() {
 
 
 wizard_config_app() {
-    echo "Post-installation actions"
-    echo "^^^^^^^^^^^^^^^^^^^^^^^^^"
-    echo
+    local _question="Do you want to enable the scheduler in this instance?"
+    whiptail --title "Enable the scheduler?" --yesno "$_question" 10 40 && LAVA_SCHEDULER_ENABLED=yes || LAVA_SCHEDULER_ENABLED=no
     return 0
 }
 
@@ -821,6 +824,15 @@ wizard_config_app() {
 install_config_app() {
     # Enable virtualenv
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
+
+    if [ "${LAVA_SCHEDULER_ENABLED-x}" = "x" ]; then
+        # LAVA_SCHEDULER_ENABLED was not in the config.
+        # Set it to 'yes' as that was the assumed behaviour before
+        # LAVA_SCHEDULER_ENABLED was introduced.
+        echo "Setting LAVA_SCHEDULER_ENABLED to 'yes'..."
+        export LAVA_SCHEDULER_ENABLED='yes'
+        _save_config
+    fi
 
     echo "Building cache of static files..."
     set -x
@@ -933,7 +945,7 @@ script
 # TODO: Check if the instance should start automatically on boot
         if [ -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
             start lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
-        fi 
+        fi
     done
 end script
 LAVA_CONF
@@ -956,7 +968,12 @@ instance \$LAVA_INSTANCE
 export LAVA_INSTANCE
 
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        logger "LAVA instance (\$LAVA_INSTANCE) starting..."
+    fi
 end script
 
 post-start script
@@ -992,7 +1009,7 @@ stop on stopping lava-instance
 # We want each worker to respawn if it gets hurt.
 respawn
 
-# Announce activity 
+# Announce activity
 pre-start script
     # Don't start unless the instance configuration file is present
     if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
@@ -1000,7 +1017,7 @@ pre-start script
     else
         # Announce uWSGI becoming online
         logger "LAVA instance (\$LAVA_INSTANCE) uWSGI starting..."
-    fi 
+    fi
 end script
 
 post-start script
@@ -1054,7 +1071,13 @@ respawn
 
 # Announce workers becoming online
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery worker starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        # Announce uWSGI becoming online
+        logger "LAVA instance (\$LAVA_INSTANCE) celery worker starting..."
+    fi
 end script
 
 post-start script
@@ -1101,7 +1124,12 @@ respawn
 
 # Announce workers becoming online
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler starting..."
+    fi
 end script
 
 post-start script
@@ -1116,7 +1144,7 @@ post-stop script
     logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler stopped"
 end script
 
-# Run celery beat scheduler 
+# Run celery beat scheduler
 script
 . $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
 exec sudo -u \$LAVA_INSTANCE VIRTUAL_ENV=\$VIRTUAL_ENV PATH=\$PATH $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerybeat --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerybeat.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerybeat.pid --schedule=$LAVA_PREFIX/\$LAVA_INSTANCE/var/lib/lava-celery/celerybeat-schedule
@@ -1142,7 +1170,12 @@ respawn
 
 # Announce workers becoming online
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery cam starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        logger "LAVA instance (\$LAVA_INSTANCE) celery cam starting..."
+    fi
 end script
 
 post-start script
@@ -1157,7 +1190,7 @@ post-stop script
     logger "LAVA instance (\$LAVA_INSTANCE) celery cam stopped"
 end script
 
-# Run celery camera 
+# Run celery camera
 script
 . $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
 exec sudo -u \$LAVA_INSTANCE VIRTUAL_ENV=\$VIRTUAL_ENV PATH=\$PATH $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerycam --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerycam.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerycam.pid
@@ -1182,7 +1215,21 @@ respawn
 
 # Announce workers becoming online
 pre-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) scheduler starting..."
+    # Don't start unless the instance configuration file is present
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        stop
+    else
+        . $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+        # We only prevent the scheduler from running if
+        # LAVA_SCHEDULER_ENABLED is set and set to 'no', to be most
+        # compatible with the previous behaviour of always running the
+        # scheduler.
+        if [ "x\$LAVA_SCHEDULER_ENABLED" = "xno" ]; then
+            stop
+        else
+            logger "LAVA instance (\$LAVA_INSTANCE) scheduler starting..."
+        fi
+    fi
 end script
 
 post-start script
