@@ -1414,7 +1414,7 @@ cmd_restore() {
         --file "$files_snapshot"
 
     # Allow instance to write to media directory
-    sudo chgrp -R $LAVA_INSTANCE $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
+    sudo chgrp -R $LAVA_SYS_USER $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
     sudo chmod -R g+rwXs $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
 
     echo "Done"
