@@ -49,6 +49,14 @@ os_check() {
 }
 
 
+uid_check() {
+    if [ $(id -u) = 0 ]; then
+        echo "Running as root is not supported"
+        exit 1
+    fi
+}
+
+
 _load_configuration() {
     LAVA_INSTANCE=$1
 
@@ -1581,6 +1589,7 @@ cmd_bundle() {
 
 main() {
     os_check
+    uid_check
     if [ $LAVA_SUPPORTED = 0 ]; then
         echo "LAVA is not supported on this system"
         echo "------------------------------------"
