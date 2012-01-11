@@ -1470,14 +1470,15 @@ cmd_backup() {
         > "$destdir/database.dump"
 
     echo "Creating file repository snapshot..."
-    tar \
+    GZIP='--rsyncable' tar \
         --create \
         --ignore-failed-read \
-        --gzip \
         --directory $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/ \
         --file "$destdir/files.tar.gz" \
         .
     #   ^ There is a DOT HERE don't remove it
+
+    ln -sf $"destdir" "$LAVA_ROOT/backups/$LAVA_INSTANCE/latest"
 
     echo "Done"
 }
@@ -1501,7 +1502,7 @@ cmd_manage() {
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
-        "$@" 
+        "$@"
     set +x
 }
 
