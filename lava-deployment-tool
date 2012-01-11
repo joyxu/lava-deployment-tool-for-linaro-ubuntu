@@ -1339,6 +1339,8 @@ cmd_remove() {
 cmd_restore() {
     LAVA_INSTANCE=${1}
 
+    set -e
+
     # Sanity checking, ensure that instance exists
     if [ \! -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
         echo "Instance $LAVA_INSTANCE does not exist"
@@ -1385,6 +1387,8 @@ cmd_restore() {
         echo "You can only run restore on the host on which postgres is running"
         return
     fi
+
+    set -x
 
     # Stop the instance
     sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
@@ -1581,11 +1585,7 @@ main() {
             cmd_backup "$@"
             ;;
         restore)
-            set -x
-            set -e
             cmd_restore "$@"
-            set +x
-            set +e
             ;;
         install_*)
             set -x
