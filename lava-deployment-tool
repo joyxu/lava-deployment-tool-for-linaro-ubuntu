@@ -11,6 +11,8 @@ LAVA_PREFIX=$LAVA_ROOT/instances
 # Pip download cache 
 export PIP_DOWNLOAD_CACHE=$LAVA_ROOT/.downloads
 
+test -n "$http_proxy" && PIP_PROXY_OPTION="--proxy=$http_proxy"
+
 # All LAVA uses this python version
 LAVA_PYTHON=python2.6
 
@@ -737,7 +739,7 @@ install_app() {
 
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
     set -x
-    pip install "$LAVA_BUNDLE" || die "Failed to install application bundle"
+    pip install $PIP_PROXY_OPTION "$LAVA_BUNDLE" || die "Failed to install application bundle"
     set +x
     deactivate
 
@@ -1581,7 +1583,7 @@ cmd_bundle() {
     read -p "Type BUNDLE to continue: " RESPONSE
     test "$RESPONSE" = 'BUNDLE' || return
     set -x
-    pip bundle "$LAVA_BUNDLE" --timeout=30 --use-mirrors --requirement="$LAVA_FULL_REQUIREMENT" || die "Failed to create bundle"
+    pip bundle "$LAVA_BUNDLE" $PIP_PROXY_OPTION --timeout=30 --use-mirrors --requirement="$LAVA_FULL_REQUIREMENT" || die "Failed to create bundle"
     set +x
     rm -f "$LAVA_FULL_REQUIREMENT"
 }
