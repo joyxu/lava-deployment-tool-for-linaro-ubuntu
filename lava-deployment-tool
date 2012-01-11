@@ -1478,7 +1478,7 @@ cmd_backup() {
         .
     #   ^ There is a DOT HERE don't remove it
 
-    ln -sf $"destdir" "$LAVA_ROOT/backups/$LAVA_INSTANCE/latest"
+    ln -sfT "$destdir" "$LAVA_ROOT/backups/$LAVA_INSTANCE/latest"
 
     echo "Done"
 }
