@@ -1533,6 +1533,7 @@ cmd_backup() {
     GZIP='--rsyncable' tar \
         --create \
         --ignore-failed-read \
+        --gzip \
         --directory $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/ \
         --file "$destdir/files.tar.gz" \
         .
