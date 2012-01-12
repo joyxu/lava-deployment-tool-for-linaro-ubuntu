@@ -1420,6 +1420,8 @@ cmd_restore() {
         fi
     fi
 
+    _load_configuration "$LAVA_INSTANCE"
+
     db_snapshot="$SNAPSHOT/database.dump"
     files_snapshot="$SNAPSHOT/files.tar.gz"
 
