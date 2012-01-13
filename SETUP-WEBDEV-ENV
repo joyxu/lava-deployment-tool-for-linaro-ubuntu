@@ -40,6 +40,8 @@ following line in /etc/init/lava-server-uwsgi.conf first:
 13. Now you can browse the lava-server from http://<Your IP>/
 14. When you do some change to lava-scheduler webapp code, reload related webapp
 to load the changes:
+$ touch etc/lava-server/uwsgi.reload
+If it doesn't take affect, try:
 $ sudo restart lava-instance-scheduler LAVA_INSTANCE=dev
 
 Some Notices
