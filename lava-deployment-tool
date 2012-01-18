@@ -1407,15 +1407,18 @@ cmd_restore() {
         return
     fi
 
-    SNAPSHOT_ID=${2}
+    local SNAPSHOT_ID=${2}
+    local SNAPSHOT_PATH="$LAVA_ROOT/backups/$LAVA_INSTANCE/$SNAPSHOT_ID"
+    local SNAPSHOT_PATH_ALT="$LAVA_ROOT/backups/$SNAPSHOT_ID"
 
-    if [ -d "$LAVA_ROOT/backups/$LAVA_INSTANCE/$SNAPSHOT_ID" ]; then
-        SNAPSHOT="$LAVA_ROOT/backups/$LAVA_INSTANCE/$SNAPSHOT_ID"
+    if [ -e "$SNAPSHOT_PATH" ]; then
+        SNAPSHOT="$SNAPSHOT_PATH"
     else
-        if [ -d "$LAVA_ROOT/backups/$SNAPSHOT_ID" ]; then
-            SNAPSHOT="$LAVA_ROOT/backups/$SNAPSHOT_ID"
+        if [ -e "$SNAPSHOT_PATH_ALT" ]; then
+            SNAPSHOT="$SNAPSHOT_PATH_ALT"
         else
-            echo "Cannot find snapshot $SNAPSHOT_ID"
+            echo "Cannot find snapshot called '$SNAPSHOT_ID'"
+            echo "It should be in $SNAPSHOT_PATH or $SNAPSHOT_PATH_ALT (alternative)"
             return
         fi
     fi
