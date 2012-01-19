@@ -1,5 +1,5 @@
 #!/bin/bash
-LAVA_DEPLOYMENT_TOOL_VERSION="2012.01"
+LAVA_DEPLOYMENT_TOOL_VERSION="0.2"
 
 # Global Configuration
 
