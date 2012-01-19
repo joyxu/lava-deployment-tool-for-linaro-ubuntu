@@ -1,4 +1,5 @@
 #!/bin/bash
+LAVA_DEPLOYMENT_TOOL_VERSION="2012.01"
 
 # Global Configuration
 
@@ -1665,6 +1666,9 @@ main() {
             ;;
         bundle)
             cmd_bundle "$@"
+            ;;
+        version)
+            echo "LAVA Deployment Tool, version $LAVA_DEPLOYMENT_TOOL_VERSION."
             ;;
         *)
             echo "Unknown command: $cmd, try help"
