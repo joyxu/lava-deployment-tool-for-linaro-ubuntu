@@ -189,6 +189,26 @@ $ ./lava-deployment-tool upgrade NAME BUNDLE
 Again the NAME and URL-to-requirements have the same meaning as in the
 install command mentioned in preceding chapter.
 
+Installing multiple LAVA instances on single IP machine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After installed and started an LAVA instance following the instruction above,
+You can use "toggle" sub command to change the instance to be used 
+on single IP machine with other installed instance together. 
+
+$ lava-deployment-tool toggle $LAVA_INSTANCE singleip
+
+Then you can access the LAVA instance via:
+    http://IP/$LAVA_INSTANCE
+
+You also can turn it back with the command below:
+
+$ lava-deployment-tool toggle $LAVA_INSTANCE site
+
+Then you can access the LAVA instance via:
+    http://virtual-host/
+
+
 Anatomy of a LAVA instance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

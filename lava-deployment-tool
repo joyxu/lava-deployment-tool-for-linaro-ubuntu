@@ -289,6 +289,8 @@ wizard_fs() {
 install_fs() {
     logger "Creating filesystem structure for LAVA instance $LAVA_INSTANCE"
     # Create basic directory structure
+    # Apache application:
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d
     # Apache site:
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/sites-available
     # Dispatcher configuration 
@@ -576,6 +578,31 @@ wizard_web_hosting() {
     return 1  # another loop please
 }
 
+generate_conf_d_file(){
+    # Create apache2 instance configuration for single IP machine
+    cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/${LAVA_INSTANCE}.conf <<INSTANCE_FOR_SINGLE_IP
+
+# set the static files directory for this instance
+Alias  /${LAVA_INSTANCE}-static/ $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/
+
+# Allow serving media, static and other custom files
+<Directory $LAVA_PREFIX/$LAVA_INSTANCE/var/www>
+    Options FollowSymLinks
+    AllowOverride None
+    Order allow,deny
+    allow from all
+</Directory>
+
+# uWSGI mount point. For this to work the uWSGI module needs be loaded.
+# XXX: Perhaps we should just load it ourselves here, dunno.
+<Location /${LAVA_INSTANCE}>
+    SetHandler              uwsgi-handler
+    uWSGISocket             $LAVA_PREFIX/$LAVA_INSTANCE/run/uwsgi.sock
+</Location>
+
+INSTANCE_FOR_SINGLE_IP
+}
+
 
 install_web_hosting() {
     logger "Installing uWSGI and other hosting parts for LAVA instance $LAVA_INSTANCE"
@@ -692,6 +719,8 @@ INSTANCE_WSGI
 INSTANCE_SITE
 
     sudo ln -s $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/sites-available/lava-server.conf /etc/apache2/sites-available/$LAVA_INSTANCE.conf
+
+    generate_conf_d_file
 
     # Create reload file
     echo "Touching this file will gracefully restart uWSGI worker for LAVA instance: $LAVA_INSTANCE" > $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.reload
@@ -1386,6 +1415,7 @@ cmd_remove() {
     sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
     sudo rm -f "/etc/apache2/sites-available/$LAVA_INSTANCE.conf" || true
     sudo rm -f "/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf" || true
+    sudo rm -f "/etc/apache2/conf.d/$LAVA_INSTANCE.conf" || true
     sudo -u postgres dropdb "$LAVA_DB_NAME" || true
     sudo -u postgres dropuser "$LAVA_DB_USER" || true
     sudo rabbitmqctl delete_user "$LAVA_RABBIT_USER" || true
@@ -1604,6 +1634,58 @@ cmd_bundle() {
 }
 
 
+cmd_toggle() {
+    export LAVA_INSTANCE=$1
+    export TARGET=${2:site}
+
+    _banner
+
+    if [ -z "$LAVA_INSTANCE" ]; then
+        echo "You need to pass the name of the instance to create as first argument"
+        return
+    fi
+
+    # Sanity checking, ensure that instance exist
+    if [ \! -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
+        echo "Instance $LAVA_INSTANCE does not exist"
+        return
+    fi
+
+    settings_file="$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf"
+    single_conf="$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/${LAVA_INSTANCE}.conf"
+    reload_file="$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.reload"
+
+    if [ "x${TARGET}" = "xsite" ]; then
+        sudo rm /etc/apache2/conf.d/${LAVA_INSTANCE}.conf
+        sed -i "s/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\",/    \"MEDIA_URL\": \"\/media\/\",/" ${settings_file} 
+        sed -i "s/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/    \"STATIC_URL\": \"\/static\/\",/" ${settings_file}
+        sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/    \"LOGIN_REDIRECT_URL\": \"\/\",/" ${settings_file}
+        touch ${reload_file}
+        sudo a2ensite $LAVA_INSTANCE.conf
+        sudo a2dissite 000-default || true
+        sudo service apache2 restart
+    elif [ "x${TARGET}" = "xsingleip" ]; then
+        if [ \! -e "${single_conf}" ];then
+            generate_conf_d_file
+        fi
+        
+        sudo a2dissite $LAVA_INSTANCE.conf
+        if [ "`ls -A /etc/apache2/sites-enabled/`" = "" ]; then
+            sudo a2ensite 000-default
+        fi
+
+        sudo ln -s ${single_conf} /etc/apache2/conf.d/${LAVA_INSTANCE}.conf
+        sed -i "s/    \"MEDIA_URL\": \"\/media\/\",/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\"\,/" ${settings_file} 
+        sed -i "s/    \"STATIC_URL\": \"\/static\/\",/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/" ${settings_file}
+        sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/\",/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/" ${settings_file}
+        touch ${reload_file}
+        sudo service apache2 restart
+    else
+        echo 'target must be specified with "site" or "singleip"'
+        return
+    fi
+}
+
 main() {
     os_check
     uid_check
@@ -1627,7 +1709,7 @@ main() {
     fi
     case "$cmd" in
         ^$|help)
-            echo "Usage: lava-deployment-tool.sh <command> [options]"
+            echo "Usage: ${__FILE_NAME__} <command> [options]"
             echo
             echo "Key commands:"
             echo "    setup   - prepare machine for LAVA (prerequisites)"
@@ -1638,6 +1720,9 @@ main() {
             echo "    install - install LAVA instance"
             echo "    upgrade - upgrade LAVA instance"
             echo "    remove  - remove LAVA instance (undoes install)"
+            echo "    toggle  - toggle LAVA instance between used as a site"
+            echo "            - or used as an application in single IP"
+            echo "            - run ${__FILE_NAME__} toggle \$instance [site|singleip]"
             echo " working with data:"
             echo "    backup  - backup your data"
             echo "    restore - restore earlier backup (removes current data)"
@@ -1672,6 +1757,9 @@ main() {
         bundle)
             cmd_bundle "$@"
             ;;
+        toggle)
+            cmd_toggle "$@"
+            ;;
         version)
             echo "LAVA Deployment Tool, version $LAVA_DEPLOYMENT_TOOL_VERSION."
             ;;
@@ -1682,5 +1770,5 @@ main() {
     esac
 }
 
-
+__FILE_NAME__=`basename ${0}`
 main "$@"
