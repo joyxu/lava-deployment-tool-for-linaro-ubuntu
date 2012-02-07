@@ -39,12 +39,12 @@ os_check() {
                     # FIXME: Lucid is not supported
                     export LAVA_SUPPORTED=0
                     # Required system packages
-                    LAVA_PKG_LIST="whiptail python-virtualenv git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
+                    LAVA_PKG_LIST="whiptail python-virtualenv git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
                     ;;
                 oneiric)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="whiptail python-virtualenv git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server"
+                    LAVA_PKG_LIST="whiptail python-virtualenv git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
                     ;;
             esac
             ;;
