@@ -1535,6 +1535,13 @@ cmd_backup() {
         --schema=public \
         > "$destdir/database.dump"
 
+    echo "Backing up instance configuration..."
+    tar --create \
+        --gzip \
+        --directory $LAVA_PREFIX/$LAVA_INSTANCE/ \
+        --file "$destdir/etc.tar.gz" \
+        etc
+
     echo "Creating file repository snapshot..."
     # tar exiting with code 1 means that the files changed under us as
     # tar was running.  As this is to be expected, we suppress that
