@@ -885,6 +885,17 @@ install_config_app() {
 }
 
 
+check_min_version() {
+    SETUP_VER=0
+    if [ -e $LAVA_PREFIX/.setup ]; then
+        SETUP_VER=$(cat $LAVA_PREFIX/.setup)
+    fi
+
+    if [ $SETUP_VER -lt $LAVA_SETUP_REQUIRED_VERSION ]; then
+        die "Please run '$0 setup' first"
+    fi
+}
+
 cmd_setup() {
     SETUP_VER=0
     if [ -e $LAVA_PREFIX/.setup ]; then
@@ -1296,6 +1307,7 @@ cmd_install() {
     export LAVA_INSTANCE=$1
     export LAVA_BUNDLE=$2
 
+    check_min_version
     _banner
 
     if [ -z "$LAVA_INSTANCE" ]; then
@@ -1325,6 +1337,7 @@ cmd_upgrade() {
     export LAVA_INSTANCE=$1
     export LAVA_BUNDLE=$2
 
+    check_min_version
     _banner
 
     if [ -z "$LAVA_INSTANCE" ]; then
@@ -1400,6 +1413,7 @@ cmd_remove() {
 cmd_restore() {
     LAVA_INSTANCE=${1}
 
+    check_min_version
     set -e
 
     # Sanity checking, ensure that instance exists
@@ -1494,6 +1508,7 @@ cmd_restore() {
 cmd_backup() {
     LAVA_INSTANCE=${1:-dev}
 
+    check_min_version
     set -e
 
     # Sanity checking, ensure that instance exists
@@ -1589,6 +1604,7 @@ cmd_manage() {
 cmd_bundle() {
     LAVA_REQUIREMENT=${1:-requirements.txt}
     LAVA_BUNDLE=${2:-lava.pybundle}
+    check_min_version
     local step
     for step in $LAVA_INSTALL_STEPS; do
         defaults_$step
