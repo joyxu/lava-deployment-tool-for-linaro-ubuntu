@@ -580,6 +580,7 @@ wizard_web_hosting() {
 
 generate_conf_d_file(){
     # Create apache2 instance configuration for single IP machine
+    mkdir -p /srv/lava/instances/ubuntu-desktop/etc/apache2/conf.d
     cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/${LAVA_INSTANCE}.conf <<INSTANCE_FOR_SINGLE_IP
 
 # set the static files directory for this instance
