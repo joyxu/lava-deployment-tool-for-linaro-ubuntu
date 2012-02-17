@@ -21,7 +21,7 @@ LAVA_PYTHON=python2.6
 LAVA_UWSGI=0.9.9.2
 
 # Current version of setup required by lava (global state)
-export LAVA_SETUP_REQUIRED_VERSION=19
+export LAVA_SETUP_REQUIRED_VERSION=20
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -39,12 +39,12 @@ os_check() {
                     # FIXME: Lucid is not supported
                     export LAVA_SUPPORTED=0
                     # Required system packages
-                    LAVA_PKG_LIST="whiptail python-virtualenv git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
                     ;;
                 oneiric)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="whiptail python-virtualenv git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
                     ;;
             esac
             ;;
@@ -1016,7 +1016,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 start on starting lava-instance
-stop on stopping lava-instance
+stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 # TODO: make uwsgi compatible with upstart socket activation
 # start on socket PROTO=unix PATH=$LAVA_PREFIX/\$LAVA_INSTANCE/run/uwsgi.sock
 
@@ -1077,7 +1077,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 # start on starting lava-instance
-# stop on stopping lava-instance
+# stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 # FIXME: upstart + virtualenv + pid tracking + sudo is broken, needs attention, celery is not part of this release
 
 # Respawn the worker if it got hurt
@@ -1130,7 +1130,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 # start on starting lava-instance
-# stop on stopping lava-instance
+# stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 # FIXME: upstart + virtualenv + pid tracking + sudo is broken, needs attention, celery is not part of this release
 
 # Respawn the worker if it got hurt
@@ -1176,7 +1176,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 # start on starting lava-instance
-# stop on stopping lava-instance
+# stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 # FIXME: upstart + virtualenv + pid tracking + sudo is broken, needs attention, celery is not part of this release
 
 # Respawn the worker if it got hurt
@@ -1222,7 +1222,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 start on starting lava-instance
-stop on stopping lava-instance
+stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 
 # Respawn the worker if it got hurt
 respawn
@@ -1534,6 +1534,13 @@ cmd_backup() {
         --no-password $dbname \
         --schema=public \
         > "$destdir/database.dump"
+
+    echo "Backing up instance configuration..."
+    tar --create \
+        --gzip \
+        --directory $LAVA_PREFIX/$LAVA_INSTANCE/ \
+        --file "$destdir/etc.tar.gz" \
+        etc
 
     echo "Creating file repository snapshot..."
     # tar exiting with code 1 means that the files changed under us as
