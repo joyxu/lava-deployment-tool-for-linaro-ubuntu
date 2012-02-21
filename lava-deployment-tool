@@ -470,6 +470,7 @@ DEFAULT_DATABASE_CONF
     sudo -u postgres createdb \
         --encoding=UTF-8 \
         --owner="$LAVA_DB_USER" \
+        --template=template0 \
         --no-password \
         "$LAVA_DB_NAME" \
         || die "Failed to create a database"
