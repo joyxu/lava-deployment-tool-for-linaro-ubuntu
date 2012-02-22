@@ -742,9 +742,11 @@ wizard_app() {
 install_app() {
     echo "Installing/upgrading application code from $LAVA_BUNDLE file"
 
+    # Clean all builds to allow package upgrading
+    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/build/*
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
     set -x
-    pip install $PIP_PROXY_OPTION "$LAVA_BUNDLE" || die "Failed to install application bundle"
+    pip install --upgrade $PIP_PROXY_OPTION "$LAVA_BUNDLE" || die "Failed to install application bundle"
     set +x
     deactivate
 
