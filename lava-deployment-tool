@@ -1637,7 +1637,7 @@ cmd_bundle() {
 
 is_vhost(){
     export LAVA_INSTANCE=$1
-    vhost_conf="/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf$"
+    vhost_conf="/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf"
     singleip_conf="/etc/apache2/conf.d/${LAVA_INSTANCE}.conf"
     if [ -f ${vhost_conf} ]; then
         echo 'vhost'
@@ -1740,7 +1740,7 @@ cmd_toggle_all(){
 
     _banner
    
-    if [ "X${TARGET}" != "Xvhost" ] -a [ "X${TARGET}" != "Xlocation" ]; then
+    if [ "X${TARGET}" != "Xvhost"  -a  "X${TARGET}" != "Xlocation" ]; then
         echo 'Please specify the target with "vhost" or "location"'
         return 1
     fi
@@ -1767,7 +1767,7 @@ cmd_toggle_all(){
             printf "Change instance(%s) to %s failed\n" ${instance} ${TARGET}
         fi
     done
-    if [ ${need_restart_apache} ]; then
+    if ${need_restart_apache}; then
         sudo service apache2 restart
     fi
 }
