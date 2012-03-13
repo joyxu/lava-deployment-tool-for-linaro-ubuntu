@@ -1635,11 +1635,44 @@ cmd_bundle() {
 }
 
 
-cmd_toggle() {
+is_vhost(){
     export LAVA_INSTANCE=$1
-    export TARGET=${2:site}
+    vhost_conf="/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf$"
+    singleip_conf="/etc/apache2/conf.d/${LAVA_INSTANCE}.conf"
+    if [ -f ${vhost_conf} ]; then
+        echo 'vhost'
+    elif [ -f ${singleip_conf} ]; then
+        echo 'location'
+    else
+        echo 'unknown'
+    fi
+}
+
+
+cmd_list(){
 
     _banner
+
+    INSTANCES=`ls $LAVA_PREFIX`
+    if [ "X${INSTANCES}" = "X" ]; then
+        echo "NO INSTANCES"
+        return
+    else
+        echo "================================"
+        echo "INSTANCE_NAME     VHOST/LOCATION"
+        echo "================================"
+    fi
+    for instance in ${INSTANCES}; do
+        is_vhost_value=`is_vhost ${instance}`
+        printf "%s\t%s\n" ${instance} ${is_vhost_value}
+    done
+    echo "================================"
+}
+
+
+toggle_instance() {
+    export LAVA_INSTANCE=$1
+    export TARGET=${2:vhost}
 
     if [ -z "$LAVA_INSTANCE" ]; then
         echo "You need to pass the name of the instance to create as first argument"
@@ -1656,16 +1689,18 @@ cmd_toggle() {
     single_conf="$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/${LAVA_INSTANCE}.conf"
     reload_file="$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.reload"
 
-    if [ "x${TARGET}" = "xsite" ]; then
+    if [ "x${TARGET}" = "xvhost" ]; then
         sudo rm /etc/apache2/conf.d/${LAVA_INSTANCE}.conf
         sed -i "s/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\",/    \"MEDIA_URL\": \"\/media\/\",/" ${settings_file} 
         sed -i "s/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/    \"STATIC_URL\": \"\/static\/\",/" ${settings_file}
         sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/    \"LOGIN_REDIRECT_URL\": \"\/\",/" ${settings_file}
         touch ${reload_file}
         sudo a2ensite $LAVA_INSTANCE.conf
-        sudo a2dissite 000-default || true
-        sudo service apache2 restart
-    elif [ "x${TARGET}" = "xsingleip" ]; then
+        if [ -e /etc/apache2/sites-enabled/000-default ]; then
+            sudo a2dissite 000-default || true
+        fi
+        return 0
+    elif [ "x${TARGET}" = "xlocation" ]; then
         if [ \! -e "${single_conf}" ];then
             generate_conf_d_file
         fi
@@ -1680,12 +1715,63 @@ cmd_toggle() {
         sed -i "s/    \"STATIC_URL\": \"\/static\/\",/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/" ${settings_file}
         sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/\",/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/" ${settings_file}
         touch ${reload_file}
-        sudo service apache2 restart
+        return 0
     else
         echo 'target must be specified with "site" or "singleip"'
-        return
+        return 1
     fi
 }
+
+
+cmd_toggle(){
+    LAVA_INSTANCE=$1
+    TARGET=${2:vhost}
+    _banner
+    
+    toggle_instance ${LAVA_INSTANCE} ${TARGET}
+    if [ $? -eq 0 ]; then
+        sudo service apache2 restart
+    fi
+}
+
+
+cmd_toggle_all(){
+    TARGET=${1:vhost}
+
+    _banner
+   
+    if [ "X${TARGET}" != "Xvhost" ] -a [ "X${TARGET}" != "Xlocation" ]; then
+        echo 'Please specify the target with "vhost" or "location"'
+        return 1
+    fi
+
+    INSTANCES=`ls $LAVA_PREFIX`
+    if [ "X${INSTANCES}" = "X" ]; then
+        return
+    fi
+    need_restart_apache=false
+    for instance in ${INSTANCES}; do
+        is_vhost_value=`is_vhost ${instance}`
+        if [ "X${TARGET}" = "X${is_vhost_value}" ]; then
+            continue
+        fi
+        if [ "X${TARGET}" = "Xunknown" ]; then
+            continue
+        fi
+        printf "Start to change instance(%s) to %s\n" ${instance} ${TARGET}
+        toggle_instance ${instance} ${TARGET}
+        if [ $? -eq 0 ]; then
+            need_restart_apache=true
+            printf "Change instance(%s) to %s successfully\n" ${instance} ${TARGET}
+        else
+            printf "Change instance(%s) to %s failed\n" ${instance} ${TARGET}
+        fi
+    done
+    if [ ${need_restart_apache} ]; then
+        sudo service apache2 restart
+    fi
+}
+
 
 main() {
     os_check
@@ -1716,14 +1802,27 @@ main() {
             echo "    setup   - prepare machine for LAVA (prerequisites)"
             echo "              (do this once before trying out others)"
             echo " working with instances:"
+            echo "    list    - list all instances installed"
             echo "    bundle  - create a bundle in preparation for installing"
             echo "              or updating"
             echo "    install - install LAVA instance"
             echo "    upgrade - upgrade LAVA instance"
             echo "    remove  - remove LAVA instance (undoes install)"
-            echo "    toggle  - toggle LAVA instance between used as a site"
-            echo "            - or used as an application in single IP"
-            echo "            - run ${__FILE_NAME__} toggle \$instance [site|singleip]"
+            echo "    toggle  - toggle one LAVA instance between used as a"
+            echo "            - location site or used as a vhost site"
+            echo "              * vhost site: the instance is configured with"
+            echo "                            VirtualHost directive of apache"
+            echo "              * location site: the instance is configured"
+            echo "                            with Location directive of apache"
+            echo "            - With the location site we can deploy multiple"
+            echo "            - instances on a single IP machine, while with"
+            echo "            - the vhost site we need have multiple hostnames"
+            echo "            - or IPs for deploying multiple instances"
+            echo "            - run ${__FILE_NAME__} toggle \$instance [location|vhost]"
+            echo "    toggle_all  - toggle all LAVA instances one time between"
+            echo "            - used as location site or used as vhost site"
+            echo "            - like toggle command"
+            echo "            - run ${__FILE_NAME__} toggle_all [location|vhost]"
             echo " working with data:"
             echo "    backup  - backup your data"
             echo "    restore - restore earlier backup (removes current data)"
@@ -1760,6 +1859,12 @@ main() {
             ;;
         toggle)
             cmd_toggle "$@"
+            ;;
+        toggle_all)
+            cmd_toggle_all "$@"
+            ;;
+        list)
+            cmd_list "$@"
             ;;
         version)
             echo "LAVA Deployment Tool, version $LAVA_DEPLOYMENT_TOOL_VERSION."

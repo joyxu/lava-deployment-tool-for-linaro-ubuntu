@@ -196,18 +196,20 @@ After installed and started an LAVA instance following the instruction above,
 You can use "toggle" sub command to change the instance to be used 
 on single IP machine with other installed instance together. 
 
-$ lava-deployment-tool toggle $LAVA_INSTANCE singleip
+$ lava-deployment-tool toggle $LAVA_INSTANCE location
 
 Then you can access the LAVA instance via:
     http://IP/$LAVA_INSTANCE
 
 You also can turn it back with the command below:
 
-$ lava-deployment-tool toggle $LAVA_INSTANCE site
+$ lava-deployment-tool toggle $LAVA_INSTANCE vhost
 
 Then you can access the LAVA instance via:
     http://virtual-host/
 
+There is also a command to toggle all LAVA instances one time:
+    lava-deployment-tool toggle_all location
 
 Anatomy of a LAVA instance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
