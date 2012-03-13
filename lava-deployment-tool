@@ -18,7 +18,7 @@ test -n "$http_proxy" && PIP_PROXY_OPTION="--proxy=$http_proxy"
 LAVA_PYTHON=python2.6
 
 # All of LAVA is being served by this uWSGI version
-LAVA_UWSGI=0.9.9.2
+LAVA_UWSGI=1.0.3
 
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=20
