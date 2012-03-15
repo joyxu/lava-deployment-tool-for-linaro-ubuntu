@@ -1629,6 +1629,24 @@ cmd_bundle() {
     rm -f "$LAVA_FULL_REQUIREMENT"
 }
 
+cmd_preview () {
+    export LAVA_INSTANCE=$1
+    export LAVA_BUNDLE=$2
+
+    check_min_version
+
+    _bundle="$(readlink -f $LAVA_BUNDLE)"
+    _tmpdir="$(mktemp -d)"
+
+    trap "rm -rf \"${_tmpdir}\"" EXIT
+
+    cd "${_tmpdir}"
+
+    unzip -c "${_bundle}" pip-manifest.txt | grep -v '^#' | tr '[A-Z]' '[a-z]' | sort > bundle-versions.txt
+    $LAVA_PREFIX/$LAVA_INSTANCE/bin/pip freeze | tr '[A-Z]' '[a-z]' | sort > installed-versions.txt
+
+    diff -y installed-versions.txt bundle-versions.txt
+}
 
 main() {
     os_check
@@ -1675,7 +1693,7 @@ main() {
         setup)
             cmd_setup "$@"
             ;;
-        install|upgrade|remove)
+        install|upgrade|remove|preview)
             cmd_$cmd "$@" # 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
             ;;
         manage)
