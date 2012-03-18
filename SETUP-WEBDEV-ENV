@@ -16,6 +16,7 @@ Then follow the steps:
 $ ./lava-deployment-tool setup
 $ ./lava-deployment-tool bundle requirements-dev.txt
 $ ./lava-development-tool install dev lava.pybundle
+$ ./lava-development-tool manage dev createsuperuser
 
 Toggle developer mode during the installation.
 
