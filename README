@@ -16,7 +16,7 @@ up and running based on the requirements-mini file provided as an example,
 which only installs lava-server.
 
  $ ./lava-deployment-tool setup
- $ ./lava-deployment-tool bundle requirements-mini.txt
+ $ ./lava-deployment-tool bundle requirements/requirements-mini.txt
  $ ./lava-deployment-tool install testinstance lava.pybundle
  $ sudo start lava-instance LAVA_INSTANCE=testinstance
 
@@ -71,7 +71,7 @@ sources later.  This also enables offline installs, or installs behind a
 restrictive firewall by allowing you to download the bundle in advance.
 To create the bundle, run:
 
-$ ./lava-deployment-tool URL_to_requirements [bundle_file_name]
+$ ./lava-deployment-tool bundle URL_to_requirements [bundle_file_name]
 If you do not specify the bundle_file_name, it will use the name 'lava.pybundle'
 
 To create a new instance run this command:
