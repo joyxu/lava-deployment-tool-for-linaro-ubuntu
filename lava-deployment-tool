@@ -1,5 +1,5 @@
 #!/bin/bash
-LAVA_DEPLOYMENT_TOOL_VERSION="0.2"
+LAVA_DEPLOYMENT_TOOL_VERSION="0.2.1"
 
 # Global Configuration
 
@@ -18,10 +18,10 @@ test -n "$http_proxy" && PIP_PROXY_OPTION="--proxy=$http_proxy"
 LAVA_PYTHON=python2.6
 
 # All of LAVA is being served by this uWSGI version
-LAVA_UWSGI=0.9.9.2
+LAVA_UWSGI=1.0.3
 
 # Current version of setup required by lava (global state)
-export LAVA_SETUP_REQUIRED_VERSION=19
+export LAVA_SETUP_REQUIRED_VERSION=20
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -39,12 +39,12 @@ os_check() {
                     # FIXME: Lucid is not supported
                     export LAVA_SUPPORTED=0
                     # Required system packages
-                    LAVA_PKG_LIST="whiptail python-virtualenv git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
                     ;;
-                oneiric)
+                oneiric|precise)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="whiptail python-virtualenv git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
                     ;;
             esac
             ;;
@@ -470,6 +470,7 @@ DEFAULT_DATABASE_CONF
     sudo -u postgres createdb \
         --encoding=UTF-8 \
         --owner="$LAVA_DB_USER" \
+        --template=template0 \
         --no-password \
         "$LAVA_DB_NAME" \
         || die "Failed to create a database"
@@ -741,9 +742,11 @@ wizard_app() {
 install_app() {
     echo "Installing/upgrading application code from $LAVA_BUNDLE file"
 
+    # Clean all builds to allow package upgrading
+    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/build/*
     . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
     set -x
-    pip install $PIP_PROXY_OPTION "$LAVA_BUNDLE" || die "Failed to install application bundle"
+    pip install --upgrade $PIP_PROXY_OPTION "$LAVA_BUNDLE" || die "Failed to install application bundle"
     set +x
     deactivate
 
@@ -885,6 +888,17 @@ install_config_app() {
 }
 
 
+check_min_version() {
+    SETUP_VER=0
+    if [ -e $LAVA_PREFIX/.setup ]; then
+        SETUP_VER=$(cat $LAVA_PREFIX/.setup)
+    fi
+
+    if [ $SETUP_VER -lt $LAVA_SETUP_REQUIRED_VERSION ]; then
+        die "Please run '$0 setup' first"
+    fi
+}
+
 cmd_setup() {
     SETUP_VER=0
     if [ -e $LAVA_PREFIX/.setup ]; then
@@ -1016,7 +1030,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 start on starting lava-instance
-stop on stopping lava-instance
+stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 # TODO: make uwsgi compatible with upstart socket activation
 # start on socket PROTO=unix PATH=$LAVA_PREFIX/\$LAVA_INSTANCE/run/uwsgi.sock
 
@@ -1077,7 +1091,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 # start on starting lava-instance
-# stop on stopping lava-instance
+# stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 # FIXME: upstart + virtualenv + pid tracking + sudo is broken, needs attention, celery is not part of this release
 
 # Respawn the worker if it got hurt
@@ -1130,7 +1144,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 # start on starting lava-instance
-# stop on stopping lava-instance
+# stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 # FIXME: upstart + virtualenv + pid tracking + sudo is broken, needs attention, celery is not part of this release
 
 # Respawn the worker if it got hurt
@@ -1176,7 +1190,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 # start on starting lava-instance
-# stop on stopping lava-instance
+# stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 # FIXME: upstart + virtualenv + pid tracking + sudo is broken, needs attention, celery is not part of this release
 
 # Respawn the worker if it got hurt
@@ -1222,7 +1236,7 @@ instance \$LAVA_INSTANCE
 
 # Stop and start along with the rest of the instance
 start on starting lava-instance
-stop on stopping lava-instance
+stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
 
 # Respawn the worker if it got hurt
 respawn
@@ -1296,6 +1310,7 @@ cmd_install() {
     export LAVA_INSTANCE=$1
     export LAVA_BUNDLE=$2
 
+    check_min_version
     _banner
 
     if [ -z "$LAVA_INSTANCE" ]; then
@@ -1325,6 +1340,7 @@ cmd_upgrade() {
     export LAVA_INSTANCE=$1
     export LAVA_BUNDLE=$2
 
+    check_min_version
     _banner
 
     if [ -z "$LAVA_INSTANCE" ]; then
@@ -1400,6 +1416,7 @@ cmd_remove() {
 cmd_restore() {
     LAVA_INSTANCE=${1}
 
+    check_min_version
     set -e
 
     # Sanity checking, ensure that instance exists
@@ -1494,6 +1511,7 @@ cmd_restore() {
 cmd_backup() {
     LAVA_INSTANCE=${1:-dev}
 
+    check_min_version
     set -e
 
     # Sanity checking, ensure that instance exists
@@ -1534,6 +1552,13 @@ cmd_backup() {
         --no-password $dbname \
         --schema=public \
         > "$destdir/database.dump"
+
+    echo "Backing up instance configuration..."
+    tar --create \
+        --gzip \
+        --directory $LAVA_PREFIX/$LAVA_INSTANCE/ \
+        --file "$destdir/etc.tar.gz" \
+        etc
 
     echo "Creating file repository snapshot..."
     # tar exiting with code 1 means that the files changed under us as
@@ -1582,6 +1607,7 @@ cmd_manage() {
 cmd_bundle() {
     LAVA_REQUIREMENT=${1:-requirements.txt}
     LAVA_BUNDLE=${2:-lava.pybundle}
+    check_min_version
     local step
     for step in $LAVA_INSTALL_STEPS; do
         defaults_$step
@@ -1603,6 +1629,24 @@ cmd_bundle() {
     rm -f "$LAVA_FULL_REQUIREMENT"
 }
 
+cmd_preview () {
+    export LAVA_INSTANCE=$1
+    export LAVA_BUNDLE=$2
+
+    check_min_version
+
+    _bundle="$(readlink -f $LAVA_BUNDLE)"
+    _tmpdir="$(mktemp -d)"
+
+    trap "rm -rf \"${_tmpdir}\"" EXIT
+
+    cd "${_tmpdir}"
+
+    unzip -qc "${_bundle}" pip-manifest.txt | grep -v '^#' | tr '[A-Z]' '[a-z]' | sort > bundle-versions.txt
+    $LAVA_PREFIX/$LAVA_INSTANCE/bin/pip freeze | tr '[A-Z]' '[a-z]' | sort > installed-versions.txt
+
+    diff -y installed-versions.txt bundle-versions.txt
+}
 
 main() {
     os_check
@@ -1649,7 +1693,7 @@ main() {
         setup)
             cmd_setup "$@"
             ;;
-        install|upgrade|remove)
+        install|upgrade|remove|preview)
             cmd_$cmd "$@" # 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
             ;;
         manage)

@@ -4,7 +4,7 @@ lava-dashboard-tool
 lava-dispatcher
 lava-kernel-ci-views
 lava-raven
-lava-scheduler
+-e bzr+lp:~le-chi-thu/lava-scheduler/improve-log-summary-page#egg=lava-scheduler
 lava-scheduler-tool
 lava-server
 lava-test
