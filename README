@@ -16,12 +16,13 @@ up and running based on the requirements-mini file provided as an example,
 which only installs lava-server.
 
  $ ./lava-deployment-tool setup
- $ ./lava-deployment-tool bundle requirements-mini.txt
+ $ ./lava-deployment-tool bundle requirements/requirements-mini.txt
  $ ./lava-deployment-tool install testinstance lava.pybundle
  $ sudo start lava-instance LAVA_INSTANCE=testinstance
+ $ ./lava-deployment-tool manage testinstance createsuperuser
 
 Assuming everything went well, you should be able to point a web browser
-at the system you did this on and see the lava-server default page.
+at the system you did this, see the lava-server default page and sign-in.
 
 
 Software Requirements
@@ -71,7 +72,7 @@ sources later.  This also enables offline installs, or installs behind a
 restrictive firewall by allowing you to download the bundle in advance.
 To create the bundle, run:
 
-$ ./lava-deployment-tool URL_to_requirements [bundle_file_name]
+$ ./lava-deployment-tool bundle URL_to_requirements [bundle_file_name]
 If you do not specify the bundle_file_name, it will use the name 'lava.pybundle'
 
 To create a new instance run this command:
@@ -81,6 +82,13 @@ $ ./lava-deployment-tool install NAME BUNDLE
 This will create a fresh instance called NAME, the instance will be composed of
 the software specified in the requirements file that was used to build the
 bundle and associated dependencies.
+
+To create an administrator user for this instance:
+
+$ ./lava-deployment-tool manage NAME createsuperuser
+
+This user can access the administration panel, edit permissions to other users
+and add bundle streams, devices, etc...
 
 The script produces verbose output, at the end it should say that everything
 went fine.
