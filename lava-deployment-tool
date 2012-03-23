@@ -289,6 +289,8 @@ wizard_fs() {
 install_fs() {
     logger "Creating filesystem structure for LAVA instance $LAVA_INSTANCE"
     # Create basic directory structure
+    # Apache application:
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d
     # Apache site:
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/sites-available
     # Dispatcher configuration 
@@ -577,6 +579,32 @@ wizard_web_hosting() {
     return 1  # another loop please
 }
 
+generate_conf_d_file(){
+    # Create apache2 instance configuration for single IP machine
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/ 
+    cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/${LAVA_INSTANCE}.conf <<INSTANCE_FOR_SINGLE_IP
+
+# set the static files directory for this instance
+Alias  /${LAVA_INSTANCE}-static/ $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/
+
+# Allow serving media, static and other custom files
+<Directory $LAVA_PREFIX/$LAVA_INSTANCE/var/www>
+    Options FollowSymLinks
+    AllowOverride None
+    Order allow,deny
+    allow from all
+</Directory>
+
+# uWSGI mount point. For this to work the uWSGI module needs be loaded.
+# XXX: Perhaps we should just load it ourselves here, dunno.
+<Location /${LAVA_INSTANCE}>
+    SetHandler              uwsgi-handler
+    uWSGISocket             $LAVA_PREFIX/$LAVA_INSTANCE/run/uwsgi.sock
+</Location>
+
+INSTANCE_FOR_SINGLE_IP
+}
+
 
 install_web_hosting() {
     logger "Installing uWSGI and other hosting parts for LAVA instance $LAVA_INSTANCE"
@@ -693,6 +721,8 @@ INSTANCE_WSGI
 INSTANCE_SITE
 
     sudo ln -s $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/sites-available/lava-server.conf /etc/apache2/sites-available/$LAVA_INSTANCE.conf
+
+    generate_conf_d_file
 
     # Create reload file
     echo "Touching this file will gracefully restart uWSGI worker for LAVA instance: $LAVA_INSTANCE" > $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.reload
@@ -1402,6 +1432,7 @@ cmd_remove() {
     sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
     sudo rm -f "/etc/apache2/sites-available/$LAVA_INSTANCE.conf" || true
     sudo rm -f "/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf" || true
+    sudo rm -f "/etc/apache2/conf.d/$LAVA_INSTANCE.conf" || true
     sudo -u postgres dropdb "$LAVA_DB_NAME" || true
     sudo -u postgres dropuser "$LAVA_DB_USER" || true
     sudo rabbitmqctl delete_user "$LAVA_RABBIT_USER" || true
@@ -1648,6 +1679,144 @@ cmd_preview () {
     diff -y installed-versions.txt bundle-versions.txt
 }
 
+is_vhost(){
+    export LAVA_INSTANCE=$1
+    vhost_conf="/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf"
+    singleip_conf="/etc/apache2/conf.d/${LAVA_INSTANCE}.conf"
+    if [ -f ${vhost_conf} ]; then
+        echo 'vhost'
+    elif [ -f ${singleip_conf} ]; then
+        echo 'location'
+    else
+        echo 'unknown'
+    fi
+}
+
+
+cmd_list(){
+
+    _banner
+
+    INSTANCES=`ls $LAVA_PREFIX`
+    if [ "X${INSTANCES}" = "X" ]; then
+        echo "NO INSTANCES"
+        return
+    else
+        echo "================================"
+        echo "INSTANCE_NAME     VHOST/LOCATION"
+        echo "================================"
+    fi
+    for instance in ${INSTANCES}; do
+        is_vhost_value=`is_vhost ${instance}`
+        printf "%s\t%s\n" ${instance} ${is_vhost_value}
+    done
+    echo "================================"
+}
+
+
+toggle_instance() {
+    export LAVA_INSTANCE=$1
+    export TARGET=${2:vhost}
+
+    if [ -z "$LAVA_INSTANCE" ]; then
+        echo "You need to pass the name of the instance to create as first argument"
+        return
+    fi
+
+    # Sanity checking, ensure that instance exist
+    if [ \! -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
+        echo "Instance $LAVA_INSTANCE does not exist"
+        return
+    fi
+
+    settings_file="$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf"
+    single_conf="$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/${LAVA_INSTANCE}.conf"
+    reload_file="$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.reload"
+
+    if [ "x${TARGET}" = "xvhost" ]; then
+        sudo rm /etc/apache2/conf.d/${LAVA_INSTANCE}.conf
+        sed -i "s/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\",/    \"MEDIA_URL\": \"\/media\/\",/" ${settings_file} 
+        sed -i "s/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/    \"STATIC_URL\": \"\/static\/\",/" ${settings_file}
+        sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/    \"LOGIN_REDIRECT_URL\": \"\/\",/" ${settings_file}
+        touch ${reload_file}
+        sudo a2ensite $LAVA_INSTANCE.conf
+        if [ -e /etc/apache2/sites-enabled/000-default ]; then
+            sudo a2dissite 000-default || true
+        fi
+        return 0
+    elif [ "x${TARGET}" = "xlocation" ]; then
+        if [ \! -e "${single_conf}" ];then
+            generate_conf_d_file
+        fi
+        
+        sudo a2dissite $LAVA_INSTANCE.conf
+        if [ "`ls -A /etc/apache2/sites-enabled/`" = "" ]; then
+            sudo a2ensite 000-default
+        fi
+
+        sudo ln -s ${single_conf} /etc/apache2/conf.d/${LAVA_INSTANCE}.conf
+        sed -i "s/    \"MEDIA_URL\": \"\/media\/\",/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\"\,/" ${settings_file} 
+        sed -i "s/    \"STATIC_URL\": \"\/static\/\",/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/" ${settings_file}
+        sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/\",/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/" ${settings_file}
+        touch ${reload_file}
+        return 0
+    else
+        echo 'target must be specified with "site" or "singleip"'
+        return 1
+    fi
+}
+
+
+cmd_toggle(){
+    LAVA_INSTANCE=$1
+    TARGET=${2:vhost}
+    _banner
+    
+    toggle_instance ${LAVA_INSTANCE} ${TARGET}
+    if [ $? -eq 0 ]; then
+        sudo service apache2 restart
+    fi
+}
+
+
+cmd_toggle_all(){
+    TARGET=${1:vhost}
+
+    _banner
+   
+    if [ "X${TARGET}" != "Xvhost"  -a  "X${TARGET}" != "Xlocation" ]; then
+        echo 'Please specify the target with "vhost" or "location"'
+        return 1
+    fi
+
+    INSTANCES=`ls $LAVA_PREFIX`
+    if [ "X${INSTANCES}" = "X" ]; then
+        return
+    fi
+    need_restart_apache=false
+    for instance in ${INSTANCES}; do
+        is_vhost_value=`is_vhost ${instance}`
+        if [ "X${TARGET}" = "X${is_vhost_value}" ]; then
+            continue
+        fi
+        if [ "X${TARGET}" = "Xunknown" ]; then
+            continue
+        fi
+        printf "Start to change instance(%s) to %s\n" ${instance} ${TARGET}
+        toggle_instance ${instance} ${TARGET}
+        if [ $? -eq 0 ]; then
+            need_restart_apache=true
+            printf "Change instance(%s) to %s successfully\n" ${instance} ${TARGET}
+        else
+            printf "Change instance(%s) to %s failed\n" ${instance} ${TARGET}
+        fi
+    done
+    if ${need_restart_apache}; then
+        sudo service apache2 restart
+    fi
+}
+
+
 main() {
     os_check
     uid_check
@@ -1671,17 +1840,36 @@ main() {
     fi
     case "$cmd" in
         ^$|help)
-            echo "Usage: lava-deployment-tool.sh <command> [options]"
+            echo "Usage: ${__FILE_NAME__} <command> [options]"
             echo
             echo "Key commands:"
             echo "    setup   - prepare machine for LAVA (prerequisites)"
             echo "              (do this once before trying out others)"
             echo " working with instances:"
+            echo "    list    - list all instances installed"
             echo "    bundle  - create a bundle in preparation for installing"
             echo "              or updating"
             echo "    install - install LAVA instance"
             echo "    upgrade - upgrade LAVA instance"
             echo "    remove  - remove LAVA instance (undoes install)"
+            echo "    toggle  - toggle one LAVA instance between being"
+            echo "            - referenced by the location (aka "
+            echo "              insance name) or by the vhost"
+            echo "              * vhost site: the instance is configured with"
+            echo "                  VirtualHost directive of apache"
+            echo "                  (ex. http://vhost.example.com)"
+            echo "              * location site: the instance is configured"
+            echo "                  with Location directive of apache"
+            echo "                  (ex. http://localhost/instance_name)"
+            echo "            - With the location site we can deploy multiple"
+            echo "            - instances on a single IP machine, while with"
+            echo "            - the vhost site we need have multiple hostnames"
+            echo "            - or IPs for deploying multiple instances"
+            echo "            - run ${__FILE_NAME__} toggle \$instance [location|vhost]"
+            echo "    toggle_all  - toggle all LAVA instances one time between"
+            echo "            - used as location site or used as vhost site"
+            echo "            - like toggle command"
+            echo "            - run ${__FILE_NAME__} toggle_all [location|vhost]"
             echo " working with data:"
             echo "    backup  - backup your data"
             echo "    restore - restore earlier backup (removes current data)"
@@ -1716,6 +1904,15 @@ main() {
         bundle)
             cmd_bundle "$@"
             ;;
+        toggle)
+            cmd_toggle "$@"
+            ;;
+        toggle_all)
+            cmd_toggle_all "$@"
+            ;;
+        list)
+            cmd_list "$@"
+            ;;
         version)
             echo "LAVA Deployment Tool, version $LAVA_DEPLOYMENT_TOOL_VERSION."
             ;;
@@ -1726,5 +1923,5 @@ main() {
     esac
 }
 
-
+__FILE_NAME__=`basename ${0}`
 main "$@"
