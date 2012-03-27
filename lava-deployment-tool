@@ -1638,6 +1638,7 @@ cmd_manage() {
 cmd_bundle() {
     LAVA_REQUIREMENT=${1:-requirements/requirements.txt}
     LAVA_BUNDLE=${2:-lava.pybundle}
+    unset PIP_DOWNLOAD_CACHE
     local step
     for step in $LAVA_INSTALL_STEPS; do
         defaults_$step
