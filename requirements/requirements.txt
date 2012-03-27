@@ -1,3 +1,12 @@
-lava-server
+lava-android-test
+lava-celery
 lava-dashboard
+lava-dashboard-tool
+lava-dispatcher
+lava-kernel-ci-views
+lava-raven
 lava-scheduler
+lava-scheduler-tool
+lava-server
+lava-test
+django < 1.4
