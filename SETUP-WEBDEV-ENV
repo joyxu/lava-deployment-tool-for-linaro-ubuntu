@@ -39,7 +39,8 @@ Setup develop environment in webapp:
 $ cd /srv/lava/instances/dev/src/lava-scheduler
 $ ./setup.py develop
 
-Setup the database:
+Setup and sync the database:
+$ ./lava-deployment-tool manage dev syncdb
 $ ./lava-deployment-tool manage dev migrate
 
 Touch the uwsgi.reload to restart the uwsgi, you can find the log by
