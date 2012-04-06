@@ -965,11 +965,11 @@ cmd_setup() {
         echo "Creating LAVA filesystem in $LAVA_PREFIX"
         sudo mkdir -p $LAVA_PREFIX
         echo "Making $(whoami) the owner of that location"
-        sudo chown $(whoami):$(whoami) $LAVA_PREFIX 
+        sudo chown $(whoami):$(id -gn) $LAVA_PREFIX 
 
         echo "Creating PIP download cache in $PIP_DOWNLOAD_CACHE and making it writable"
         sudo mkdir -p $PIP_DOWNLOAD_CACHE
-        sudo chown $(whoami):$(whoami) $PIP_DOWNLOAD_CACHE 
+        sudo chown $(whoami):$(id -gn) $PIP_DOWNLOAD_CACHE 
 
         echo "Creating upstart script for: lava"
         sudo sh -c "cat >/etc/init/lava.conf" <<LAVA_CONF
