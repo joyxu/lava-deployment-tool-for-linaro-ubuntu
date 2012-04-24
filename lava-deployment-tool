@@ -104,6 +104,8 @@ LAVA_RABBIT_USER='$LAVA_RABBIT_USER'
 LAVA_RABBIT_PASSWORD='$LAVA_RABBIT_PASSWORD'
 # Scheduler configuration
 LAVA_SCHEDULER_ENABLED='$LAVA_SCHEDULER_ENABLED'
+LAVA_SERVER_IP='$LD_LAVA_SERVER_IP'
+LAVA_PROXY='$LD_LAVA_PROXY'
 INSTANCE_CONF
 }
 
@@ -303,6 +305,11 @@ install_fs() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/templates
     # Static file cache
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
+    # Lava-dispatcher folders
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images/cache
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images/tmp
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/results
     # Repository of precious user-generated data (needs backup)
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media
     # Celery state 
@@ -786,7 +793,7 @@ install_app() {
     set +x
     deactivate
 
-    gen_lava_dispatcher_config()
+    gen_lava_dispatcher_config
 
     if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf ]; then
         if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server ]; then
@@ -930,8 +937,7 @@ config_lava_dispatcher() {
 
 }
 
-gen_lava_dispatcher_config()
-{
+gen_lava_dispatcher_config() {
     LAVA_DISPATCHER_CONFIG_FILE=$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-dispatcher/lava-dispatcher.conf
 
     echo "Creating lava-dispatcher config file %LAVA_DISPATCHER_CONFIG_FILE"
