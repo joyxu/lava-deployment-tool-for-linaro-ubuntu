@@ -306,8 +306,8 @@ install_fs() {
     # Static file cache
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
     # Lava-dispatcher folders
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images/cache
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images/tmp
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/lava-dispatcher
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images
     # Repository of precious user-generated data (needs backup)
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media
     # Celery state 
@@ -922,16 +922,16 @@ config_lava_dispatcher() {
 
 
     # Location for rootfs/boot tarballs extracted from images
-    export LAVA_IMAGE_TMPDIR=$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images/tmp
+    export LAVA_IMAGE_TMPDIR=$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images
 
     # URL where LAVA_IMAGE_TMPDIR can be accessed remotely
-    export LAVA_IMAGE_URL=http://$SERVER_IP/lava-server/images/tmp
+    export LAVA_IMAGE_URL=http://$SERVER_IP/lava-server/images
 
     # Location on the device for storing test results.
     export LAVA_RESULT_DIR=$LAVA_PREFIX/$LAVA_INSTANCE/tmp
 
     # Location for caching downloaded artifacts such as hwpacks and images
-    export LAVA_CACHEDIR=$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images/cache
+    export LAVA_CACHEDIR=$LAVA_PREFIX/$LAVA_INSTANCE/var/cache/lava-dispatcher
 
 }
 
