@@ -982,7 +982,7 @@ install_config_app() {
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
-        buistatic --noinput --link || die "Failed to update the cache of static content"
+        build_static --noinput --link || die "Failed to update the cache of static content"
     set +x
 
     echo "Stopping instance for database changes..."
