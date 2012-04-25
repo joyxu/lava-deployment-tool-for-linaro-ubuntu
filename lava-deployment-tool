@@ -948,7 +948,7 @@ LAVA_SERVER_IP = $LAVA_SERVER_IP
 LAVA_IMAGE_TMPDIR = $LAVA_IMAGE_TMPDIR
 
 # URL where LAVA_IMAGE_TMPDIR can be accessed remotely
-LAVA_IMAGE_URL = http://%(LAVA_SERVER_IP)s/images/tmp
+LAVA_IMAGE_URL = http://%(LAVA_SERVER_IP)s/images
 
 # Location on the device for storing test results.
 LAVA_RESULT_DIR = $LAVA_RESULT_DIR
@@ -959,6 +959,17 @@ LAVA_CACHEDIR = $LAVA_CACHEDIR
 # This is the address and port of cache proxy service, format is like:
 # LAVA_PROXY = http://192.168.1.10:3128/
 LAVA_PROXY = $LAVA_PROXY
+
+# The url point to the version of lava-test to be install with pip
+#LAVA_TEST_URL = bzr+http://bazaar.launchpad.net/~le-chi-thu/lava-test/enabled-file-cache/#egg=lava-test
+
+# Python logging level to use
+# # 10 = DEBUG
+# # 20 = INFO
+# # 30 = WARNING
+# # 40 = ERROR
+# # Messages with a lower number than LOGGING_LEVEL will be suppressed
+# LOGGING_LEVEL = 10
 
 LAVA_DISPATCHER_CONF
 
