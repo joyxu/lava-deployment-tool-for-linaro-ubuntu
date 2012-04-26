@@ -39,12 +39,12 @@ os_check() {
                     # FIXME: Lucid is not supported
                     export LAVA_SUPPORTED=0
                     # Required system packages
-                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools"
                     ;;
                 oneiric|precise)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools"
                     ;;
             esac
             ;;
@@ -1056,9 +1056,14 @@ cmd_setup() {
         echo
         read -p "Type YES to continue: " RESPONSE
         test "$RESPONSE" = 'YES' || return
-    
+
         echo "Updating apt cache..."
         sudo apt-get update
+                                       
+	echo "Add Linaro tools ppa"
+	sudo apt-get install --yes python-software-properties
+	sudo add-apt-repository --yes ppa:linaro-maintainers/tools
+	sudo apt-get update
 
         echo "Installing english language pack, if needed"
         # XXX: I'm not 100% sure this is needed
