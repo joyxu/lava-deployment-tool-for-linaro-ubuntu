@@ -11,16 +11,15 @@
 
 set -uxe
 
-def () {
+allow-badness () {
     set +uxe;
     "$@";
     set -uxe;
 }
 
+TARGET_INSTANCE="${1:-staging}"
 
 LAVA_ROOT=/srv/lava
-# Pip download cache
-export PIP_DOWNLOAD_CACHE=$LAVA_ROOT/.downloads
 
 LDT_DIR="$(dirname $(readlink -f $0))"
 REQUIREMENTS="${LDT_DIR}/requirements/requirements-trunk.txt"
@@ -31,14 +30,22 @@ SCRATCH_DIR="$(mktemp -d)"
 trap "rm -rf \"${SCRATCH_DIR}\"" EXIT
 
 VENV="${SCRATCH_DIR}/env"
+BUNDLE="${SCRATCH_DIR}/lava.pybundle"
 
 virtualenv "${VENV}"
 
-def . "${VENV}/bin/activate"
+allow-badness . "${VENV}/bin/activate"
+
+unset PIP_DOWNLOAD_CACHE
 
 pip install -q -I https://github.com/zyga/pip/tarball/develop
+
+export PIP_DOWNLOAD_CACHE=$LAVA_ROOT/.downloads
+
 pip install -q bzr
 
-"${LDT}" bundle "${REQUIREMENTS}" "${SCRATCH_DIR}/lava.pybundle"
+"${LDT}" bundle "${REQUIREMENTS}" "${BUNDLE}"
 
-deactivate
+allow-badness deactivate
+
+"${LDT}" preview "${TARGET_INSTANCE}" "${BUNDLE}"
