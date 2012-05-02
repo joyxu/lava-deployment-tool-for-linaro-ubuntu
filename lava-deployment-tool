@@ -1783,7 +1783,7 @@ cmd_preview () {
     unzip -qc "${_bundle}" pip-manifest.txt | grep -v '^#' | tr '[A-Z]' '[a-z]' | sort > bundle-versions.txt
     $LAVA_PREFIX/$LAVA_INSTANCE/bin/pip freeze | tr '[A-Z]' '[a-z]' | sort > installed-versions.txt
 
-    diff -y installed-versions.txt bundle-versions.txt
+    $(dirname $(readlink -f "$0"))/_compare_manifests.py installed-versions.txt bundle-versions.txt
 }
 
 is_vhost(){
