@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# 1. Make virtualenv
+# 2. Patch pip in virtualenv
+# 3. Install bzrlib in virtualenv.
+# 4. Activate virtualenv
+# 5. Make bundle in virtualenv using requirements/requirements-trunk.txt
+# 6. Deactivate virtualenv
+# 7. Optionally run l-d-t preview and ask for confirmation
+# 8. Run l-d-t upgrade with bundle made in step 5.
