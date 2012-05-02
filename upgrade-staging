@@ -37,19 +37,20 @@ virtualenv "${VENV}"
 
 allow-badness . "${VENV}/bin/activate"
 
-# pip is kinda stupid around caching and won't realize that it has
-# downloaded a tarball if you let it save the results of this download
-# to the cache.
-unset PIP_DOWNLOAD_CACHE
-pip install -q -I https://github.com/zyga/pip/tarball/develop
 export PIP_DOWNLOAD_CACHE=$LAVA_ROOT/.downloads
 
 pip install -q bzr
 
+mkdir "${SCRATCH_DIR}/src"
+
 while read line
 do
-    echo "-e bzr+lp:$line#egg=$line"
-done < "${SOURCE_REQUIREMENTS}" > "${REQS}"
+    bzr branch --stacked "lp:$line" "${SCRATCH_DIR}/src/$line"
+    pushd "${SCRATCH_DIR}/src/$line"
+    python setup.py sdist
+    echo $(readlink -f dist/*) >> "${REQS}"
+    popd
+done < "${SOURCE_REQUIREMENTS}"
 
 "${LDT}" bundle "${REQS}" "${BUNDLE}"
 
