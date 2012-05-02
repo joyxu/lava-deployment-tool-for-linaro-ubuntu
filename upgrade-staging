@@ -17,6 +17,11 @@ def () {
     set -uxe;
 }
 
+
+LAVA_ROOT=/srv/lava
+# Pip download cache
+export PIP_DOWNLOAD_CACHE=$LAVA_ROOT/.downloads
+
 LDT_DIR="$(dirname $(readlink -f $0))"
 REQUIREMENTS="${LDT_DIR}/requirements/requirements-trunk.txt"
 LDT="${LDT_DIR}/lava-deployment-tool"
