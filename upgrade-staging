@@ -36,10 +36,11 @@ virtualenv "${VENV}"
 
 allow-badness . "${VENV}/bin/activate"
 
+# pip is kinda stupid around caching and won't realize that it has
+# downloaded a tarball if you let it save the results of this download
+# to the cache.
 unset PIP_DOWNLOAD_CACHE
-
 pip install -q -I https://github.com/zyga/pip/tarball/develop
-
 export PIP_DOWNLOAD_CACHE=$LAVA_ROOT/.downloads
 
 pip install -q bzr
@@ -49,3 +50,5 @@ pip install -q bzr
 allow-badness deactivate
 
 "${LDT}" preview "${TARGET_INSTANCE}" "${BUNDLE}"
+
+#"${LDT}" upgrade "${TARGET_INSTANCE}" "${BUNDLE}"
