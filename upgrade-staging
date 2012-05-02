@@ -58,4 +58,4 @@ allow-badness deactivate
 
 "${LDT}" preview "${TARGET_INSTANCE}" "${BUNDLE}"
 
-#"${LDT}" upgrade "${TARGET_INSTANCE}" "${BUNDLE}"
+"${LDT}" upgrade "${TARGET_INSTANCE}" "${BUNDLE}"
