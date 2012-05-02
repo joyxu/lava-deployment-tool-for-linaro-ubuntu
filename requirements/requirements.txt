@@ -7,7 +7,7 @@ lava-kernel-ci-views
 lava-raven
 lava-scheduler
 lava-scheduler-tool
-lava-server == 0.11.1
+lava-server
 lava-test
 django < 1.4
 django-celery
