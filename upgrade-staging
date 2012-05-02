@@ -9,11 +9,17 @@
 # 7. Optionally run l-d-t preview and ask for confirmation
 # 8. Run l-d-t upgrade with bundle made in step 5.
 
-set -xe
+set -uxe
+
+def () {
+    set +uxe;
+    "$@";
+    set -uxe;
+}
 
 LDT_DIR="$(dirname $(readlink -f $0))"
 REQUIREMENTS="${LDT_DIR}/requirements/requirements-trunk.txt"
-LDT="${LDT}/lava-deployment-tool"
+LDT="${LDT_DIR}/lava-deployment-tool"
 
 SCRATCH_DIR="$(mktemp -d)"
 
@@ -23,7 +29,7 @@ VENV="${SCRATCH_DIR}/env"
 
 virtualenv "${VENV}"
 
-. "${VENV}/bin/activate"
+def . "${VENV}/bin/activate"
 
 pip install -q -I https://github.com/zyga/pip/tarball/develop
 pip install -q bzr
