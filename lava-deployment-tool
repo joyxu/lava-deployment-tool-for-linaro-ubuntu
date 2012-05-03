@@ -1747,7 +1747,6 @@ cmd_manage() {
 cmd_bundle() {
     LAVA_REQUIREMENT=${1:-requirements/requirements.txt}
     LAVA_BUNDLE=${2:-lava.pybundle}
-#    unset PIP_DOWNLOAD_CACHE
     local step
     for step in $LAVA_INSTALL_STEPS; do
         defaults_$step
@@ -1756,13 +1755,6 @@ cmd_bundle() {
     for step in $LAVA_INSTALL_STEPS; do
         pkglist_$step >> "$LAVA_FULL_REQUIREMENT"
     done
-#    echo "The resulting file can be copied for off-line installation"
-#    echo "Do you wnt to create $LAVA_BUNDLE with the following packages:"
-#    echo
-#    cat "$LAVA_FULL_REQUIREMENT"
-#    echo
-#    read -p "Type BUNDLE to continue: " RESPONSE
-#    test "$RESPONSE" = 'BUNDLE' || return
     set -x
     pip bundle "$LAVA_BUNDLE" $PIP_PROXY_OPTION --timeout=30 --use-mirrors --requirement="$LAVA_FULL_REQUIREMENT" || die "Failed to create bundle"
     set +x
