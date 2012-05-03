@@ -2036,8 +2036,8 @@ main() {
         backup)
             cmd_backup "$@"
             ;;
-        restore)
-            cmd_restore "$@"
+        restore-*)
+            cmd_$cmd "$@"
             ;;
         install_*)
             set -x
