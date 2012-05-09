@@ -544,6 +544,7 @@ pkglist_web_hosting() {
     echo "http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz"
     echo "django-seatbelt"
     echo "django-debian"
+    echo "django-celery"
 }
 
 
