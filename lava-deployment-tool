@@ -1773,6 +1773,8 @@ cmd_preview () {
 
     check_min_version
 
+    local compare_manifests="$(dirname $(readlink -f "$0"))/_compare_manifests.py"
+
     _bundle="$(readlink -f $LAVA_BUNDLE)"
     _tmpdir="$(mktemp -d)"
 
@@ -1783,7 +1785,7 @@ cmd_preview () {
     unzip -qc "${_bundle}" pip-manifest.txt | grep -v '^#' | tr '[A-Z]' '[a-z]' | sort > bundle-versions.txt
     $LAVA_PREFIX/$LAVA_INSTANCE/bin/pip freeze | tr '[A-Z]' '[a-z]' | sort > installed-versions.txt
 
-    $(dirname $(readlink -f "$0"))/_compare_manifests.py installed-versions.txt bundle-versions.txt
+    "${compare_manifests}" installed-versions.txt bundle-versions.txt
 }
 
 is_vhost(){
