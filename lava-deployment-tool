@@ -541,7 +541,7 @@ defaults_web_hosting() {
 
 
 pkglist_web_hosting() {
-    echo "http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz"
+    echo "http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz"
     echo "django-seatbelt"
     echo "django-debian"
     echo "django-celery"
