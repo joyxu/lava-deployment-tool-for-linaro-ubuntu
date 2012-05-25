@@ -541,7 +541,7 @@ defaults_web_hosting() {
 
 
 pkglist_web_hosting() {
-    echo "http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz"
+    echo "http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz"
     echo "django-seatbelt"
     echo "django-debian"
     echo "django-celery"
@@ -996,6 +996,7 @@ install_config_app() {
 
     echo "Building cache of static files..."
     set -x
+    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
