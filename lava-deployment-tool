@@ -996,6 +996,7 @@ install_config_app() {
 
     echo "Building cache of static files..."
     set -x
+    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
     lava-server manage \
         --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
         --instance=$LAVA_INSTANCE \
