@@ -23,7 +23,8 @@ for branch_name in sorted(branches):
                     revno = branch.revision_id_to_dotted_revno(revid)
                 except bzrlib.errors.NoSuchRevision:
                     pass
-                released_revnos.append((revno, tag[len('release-'):]))
+                else:
+                    released_revnos.append((revno, tag[len('release-'):]))
         released_revno, release = max(released_revnos)
         print release,
         revid = branch.last_revision()
