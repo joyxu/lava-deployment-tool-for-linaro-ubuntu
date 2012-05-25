@@ -18,6 +18,8 @@ def load(fname):
 
 cur = load(sys.argv[1])
 new = load(sys.argv[2])
+if 'pip' in new:
+    del new['pip']
 
 not_present = set(cur) - set(new)
 new_packaged = set(new) - set(cur)
