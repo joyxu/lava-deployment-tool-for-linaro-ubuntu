@@ -2,9 +2,13 @@
 import bzrlib.branch
 import bzrlib.errors
 import os
-
+import sys
 
 branches = os.listdir('/srv/lava/branches')
+
+if sys.argv[1:]:
+    branches = sys.argv[1:]
+
 for branch_name in sorted(branches):
     print branch_name,
     branch = bzrlib.branch.Branch.open(
