@@ -5,7 +5,7 @@ import os
 
 
 branches = os.listdir('/srv/lava/branches')
-for branch_name in branches:
+for branch_name in sorted(branches):
     print branch_name,
     branch = bzrlib.branch.Branch.open(
         os.path.join('/srv/lava/branches', branch_name))
