@@ -45,6 +45,7 @@ mkdir "${SCRATCH_DIR}/src"
 
 while read line
 do
+    echo "${line}" | grep -q '^lava' || continue
     bzr branch --stacked "lp:$line" "${SCRATCH_DIR}/src/$line"
     pushd "${SCRATCH_DIR}/src/$line"
     python setup.py sdist
