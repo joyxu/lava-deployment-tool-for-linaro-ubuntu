@@ -44,7 +44,7 @@ os_check() {
                 oneiric|precise)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools unzip"
                     ;;
             esac
             ;;
