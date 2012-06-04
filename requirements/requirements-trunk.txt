@@ -5,3 +5,4 @@ bzr
 -e bzr+lp:lava-vcs#egg=lava-vcs
 -e bzr+lp:lava-scheduler#egg=lava-scheduler
 -e bzr+lp:lava-dispatcher#egg=lava-dispatcher
+-e bzr+lp:lava-android-test#egg=lava-android-test
