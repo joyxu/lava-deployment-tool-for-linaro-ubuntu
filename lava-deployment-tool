@@ -1847,6 +1847,7 @@ toggle_instance() {
         sudo rm /etc/apache2/conf.d/${LAVA_INSTANCE}.conf
         sed -i "s/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\",/    \"MEDIA_URL\": \"\/media\/\",/" ${settings_file} 
         sed -i "s/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/    \"STATIC_URL\": \"\/static\/\",/" ${settings_file}
+        sed -i "s/    \"LOGIN_URL\": \"\/${LAVA_INSTANCE}\/accounts\/login\/\",/    \"LOGIN_URL\": \"\/accounts\/login\/\",/" ${settings_file}
         sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/    \"LOGIN_REDIRECT_URL\": \"\/\",/" ${settings_file}
         touch ${reload_file}
         sudo a2ensite $LAVA_INSTANCE.conf
@@ -1867,11 +1868,12 @@ toggle_instance() {
         sudo ln -s ${single_conf} /etc/apache2/conf.d/${LAVA_INSTANCE}.conf
         sed -i "s/    \"MEDIA_URL\": \"\/media\/\",/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\"\,/" ${settings_file} 
         sed -i "s/    \"STATIC_URL\": \"\/static\/\",/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/" ${settings_file}
+        sed -i "s/    \"LOGIN_URL\": \"\/accounts/\login\/\",/    \"LOGIN_URL\": \"\/${LAVA_INSTANCE}\/accounts\/login\/\",/" ${settings_file}
         sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/\",/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/" ${settings_file}
         touch ${reload_file}
         return 0
     else
-        echo 'target must be specified with "site" or "singleip"'
+        echo 'target must be specified with "vhost" or "location"'
         return 1
     fi
 }
