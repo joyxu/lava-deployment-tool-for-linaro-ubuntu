@@ -1565,7 +1565,7 @@ cmd_remove() {
 }
 
 
-cmd_restore() {
+_find_snapshot () {
     LAVA_INSTANCE=${1}
 
     check_min_version
@@ -1582,32 +1582,19 @@ cmd_restore() {
     local SNAPSHOT_PATH_ALT="$LAVA_ROOT/backups/$SNAPSHOT_ID"
 
     if [ -e "$SNAPSHOT_PATH" ]; then
-        SNAPSHOT="$SNAPSHOT_PATH"
+        echo "$SNAPSHOT_PATH"
     else
         if [ -e "$SNAPSHOT_PATH_ALT" ]; then
-            SNAPSHOT="$SNAPSHOT_PATH_ALT"
+            echo "$SNAPSHOT_PATH_ALT"
         else
             echo "Cannot find snapshot called '$SNAPSHOT_ID'"
             echo "It should be in $SNAPSHOT_PATH or $SNAPSHOT_PATH_ALT (alternative)"
-            return
+            exit 1
         fi
     fi
+}
 
-    _load_configuration "$LAVA_INSTANCE"
-
-    db_snapshot="$SNAPSHOT/database.dump"
-    files_snapshot="$SNAPSHOT/files.tar.gz"
-
-    if [ \! -f "$db_snapshot" -o \! -f "$files_snapshot" ]; then
-        echo "$SNAPSHOT does not look like a complete snapshot"
-        return
-    fi
-
-    echo "Are you sure you want to restore instance $LAVA_INSTANCE from"
-    echo "$SNAPSHOT_ID?  This will DESTROY the existing state of $LAVA_INSTANCE"
-    echo
-    read -p "Type RESTORE to continue: " RESPONSE
-    test "$RESPONSE" = 'RESTORE' || return
+_restore_db_from_dump () {
 
     # Load database configuration
     . $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/default_database.conf
@@ -1625,9 +1612,6 @@ cmd_restore() {
 
     set -x
 
-    # Stop the instance
-    sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
-
     sudo -u postgres dropdb \
         --port $dbport \
         $dbname || true
@@ -1642,7 +1626,62 @@ cmd_restore() {
         --port $dbport \
         --role $dbuser \
         --dbname $dbname \
-        $SNAPSHOT/database.dump > /dev/null
+        "${1}" > /dev/null
+}
+
+cmd_restore-db () {
+    LAVA_INSTANCE=${1}
+    local SNAPSHOT_ID=${2}
+    SNAPSHOT="$(_find_snapshot $LAVA_INSTANCE $SNAPSHOT_ID)"
+
+    _load_configuration "$LAVA_INSTANCE"
+
+    db_snapshot="$SNAPSHOT/database.dump"
+
+    if [ \! -f "$db_snapshot" ]; then
+        echo "$SNAPSHOT does not contain a db snapshot"
+        exit 1
+    fi
+
+    echo "Are you sure you want to restore the database of $LAVA_INSTANCE from"
+    echo "$SNAPSHOT_ID?  This will DESTROY the existing database of $LAVA_INSTANCE"
+    echo
+    read -p "Type RESTORE to continue: " RESPONSE
+    test "$RESPONSE" = 'RESTORE' || return
+
+    # Stop the instance
+    sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
+
+    _restore_db_from_dump "$db_snapshot"
+
+    sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
+
+    echo "Done"
+
+}
+
+cmd_restore() {
+    LAVA_INSTANCE=${1}
+    local SNAPSHOT_ID=${2}
+    SNAPSHOT="$(_find_snapshot $LAVA_INSTANCE $SNAPSHOT_ID)"
+
+    _load_configuration "$LAVA_INSTANCE"
+
+    db_snapshot="$SNAPSHOT/database.dump"
+    files_snapshot="$SNAPSHOT/files.tar.gz"
+
+    if [ \! -f "$db_snapshot" -o \! -f "$files_snapshot" ]; then
+        echo "$SNAPSHOT does not look like a complete snapshot"
+        return
+    fi
+
+    echo "Are you sure you want to restore instance $LAVA_INSTANCE from"
+    echo "$SNAPSHOT_ID?  This will DESTROY the existing state of $LAVA_INSTANCE"
+    echo
+    read -p "Type RESTORE to continue: " RESPONSE
+    test "$RESPONSE" = 'RESTORE' || return
+
+    _restore_db_from_dump "$db_snapshot"
 
     sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
@@ -2007,8 +2046,8 @@ main() {
         backup)
             cmd_backup "$@"
             ;;
-        restore)
-            cmd_restore "$@"
+        restore-*)
+            cmd_$cmd "$@"
             ;;
         install_*)
             set -x
