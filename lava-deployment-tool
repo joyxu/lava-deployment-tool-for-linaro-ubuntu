@@ -193,7 +193,7 @@ _configure() {
 _install() {
     for install_step in $LAVA_INSTALL_STEPS; do 
         echo "Running installation step $install_step"
-        install_$install_step || die "Failed at $install_step"
+        install_$install_step
     done
     echo "All installation is done"
 }
