@@ -358,8 +358,7 @@ wizard_buildout () {
 install_buildout () {
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     virtualenv "${venv}"
-    "${venv}/bin/pip" install zc.buildout==1.5.2
-    "${venv}/bin/pip" install $LAVA_UWSGI_URL
+    "${venv}/bin/pip" install zc.buildout==1.5.2 bzr==2.5 $LAVA_UWSGI_URL
 }
 
 defaults_database() {
