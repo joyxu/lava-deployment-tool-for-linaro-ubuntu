@@ -489,14 +489,6 @@ defaults_web_hosting() {
     export LAVA_DEV_MODE=no
 }
 
-
-# XXX here be dragons?
-pkglist_web_hosting() {
-    echo "http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz"
-    echo "django-celery"
-}
-
-
 wizard_web_hosting() {
     echo
     echo "Apache and uWSGI configuration"
