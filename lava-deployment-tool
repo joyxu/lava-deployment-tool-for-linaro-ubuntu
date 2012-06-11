@@ -23,7 +23,6 @@ LAVA_PYTHON=python2.6
 
 # All of LAVA is being served by this uWSGI version
 LAVA_UWSGI=1.0.3
-LAVA_UWSGI_URL=http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
 
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=21
@@ -359,8 +358,8 @@ install_buildout () {
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     virtualenv "${venv}"
     "${venv}/bin/pip" $PIP_PROXY_OPTION install \
-        zc.buildout==1.5.2 \
-        $LAVA_UWSGI_URL \
+        $LAVA_DOWNLOAD_CACHE/dist/zc.buildout-1.5.2.tar.gz \
+        $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/bzr-2.5.1.tar.gz
 }
 
@@ -556,22 +555,6 @@ INSTANCE_FOR_SINGLE_IP
 
 install_web_hosting() {
     logger "Installing uWSGI and other hosting parts for LAVA instance $LAVA_INSTANCE"
-
-    if [ \! -e /etc/apache2/mods-available/uwsgi.load ]; then
-        logger "Building uWSGI apache module..."
-        # NOTE: we may not have this file cached as we used bundle to get it
-        _tmpdir="$(mktemp -d)"
-
-        trap "rm -rf \"${_tmpdir}\"" EXIT
-        set -xe
-        pushd $_tmpdir
-        wget -q -O- $LAVA_UWSGI_URL | tar -xz --strip-components=1
-        cd apache2
-        apxs2 -c mod_uwsgi.c
-        sudo apxs2 -i -a mod_uwsgi.c
-        popd
-        set +xe
-    fi
 
     # Create apache2 site
     cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/sites-available/lava-server.conf <<INSTANCE_SITE
@@ -929,8 +912,11 @@ cmd_setup() {
         sudo chown $(whoami):$(id -gn) $LAVA_EGG_CACHE
         sudo mkdir -p $LAVA_DOWNLOAD_CACHE
         sudo chown $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
-        (cd $LAVA_DOWNLOAD_CACHE; wget https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz)
-
+        pushd $LAVA_DOWNLOAD_CACHE
+        wget https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz
+        wget http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
+        wget http://pypi.python.org/packages/source/z/zc.buildout/zc.buildout-1.5.2.tar.gz
+        popd
         echo "Creating upstart script for: lava"
         sudo sh -c "cat >/etc/init/lava.conf" <<LAVA_CONF
 author "Zygmunt Krynicki"
@@ -1272,6 +1258,21 @@ script
     exec $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage --instance-template=$LAVA_PREFIX/{instance}/etc/lava-server/{{filename}}.conf --instance=\$LAVA_INSTANCE scheduler --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-scheduler.log --loglevel=info
 end script
 LAVA_CONF
+
+        if [ \! -e /etc/apache2/mods-available/uwsgi.load ]; then
+            echo "Building uWSGI apache module..."
+            _tmpdir="$(mktemp -d)"
+
+            trap "rm -rf \"${_tmpdir}\"" EXIT
+            set -xe
+            pushd $_tmpdir
+            tar -xzf $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz --strip-components=1
+            cd apache2
+            apxs2 -c mod_uwsgi.c
+            sudo apxs2 -i -a mod_uwsgi.c
+            popd
+            set +xe
+        fi
 
         # Store setup version
         echo $LAVA_SETUP_REQUIRED_VERSION > $LAVA_PREFIX/.setup

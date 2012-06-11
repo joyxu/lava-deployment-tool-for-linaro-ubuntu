@@ -5,8 +5,7 @@ LAVA Deployment Tool is meant to assist you setting up LAVA on your machine.
 The tool is suitable for both personal and more "production" installations that
 are expected to perform adequately with more concurrent users. This tool is
 not, however, designed for multi-machine installation, including cloud
-deployment. For that it is likely we will turn to Juju
-(https://juju.ubuntu.com/)
+deployment. For that it is likely we will turn to Juju (https://juju.ubuntu.com/)
 
 Quickstart
 ^^^^^^^^^^
@@ -17,27 +16,30 @@ are doing otherwise, here are the basic set of commands to get an instance.
  $ ./lava-deployment-tool install testinstance
  $ ./lava-deployment-tool manage testinstance createsuperuser
 
-Assuming everything went well, you should be able to point a web browser
-at the system you did this, see the lava-server default page and sign-in.
+Assuming everything went well, you should be able to point a web
+browser at the system you did this, see the lava-server default page
+and sign-in.
 
 
 Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
-This tool should work on Ubuntu versions starting with 10.10 release
-(Maverick).  If you'd like to help us with other distributions feel
-free to contact us at linaro-validation (at) lists (dot) linaro (dot)
-org.
+We currently recommmend using Ubuntu 12.04.  This tool should work on
+Ubuntu versions 11.10 (Oneiric) and newer.
+
+If you'd like to help us with other distributions feel free to contact
+us at linaro-validation (at) lists (dot) linaro (dot) org.
 
 Hardware Requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
-A small LAVA instance can be deployed on any modest hardware. We recommend at
-least one 1GB of RAM for runtime activity (this is shared, on a single host,
-among the database server, the application server and the web server). For
-storage please reserve about 20GB for application data, especially if you wish
-to mirror current public LAVA instance used by Linaro. LAVA uses append-only
-models so the storage requirements will grow at about several GB a year.
+A small LAVA instance can be deployed on any modest hardware. We
+recommend at least one 1GB of RAM for runtime activity (this is
+shared, on a single host, among the database server, the application
+server and the web server). For storage please reserve about 20GB for
+application data, especially if you wish to mirror current public LAVA
+instance used by Linaro.  LAVA uses append-only models so the storage
+requirements will grow at about several GB a year.
 
 Before installing
 ^^^^^^^^^^^^^^^^^
