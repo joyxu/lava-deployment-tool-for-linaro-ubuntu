@@ -660,21 +660,6 @@ wizard_app() {
 install_app() {
     echo "Installing/upgrading application code from a lp:lava-server revision"
 
-    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/buildout-venv"
-    local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/r$LAVA_REVNO"
-
-    set -ex
-    bzr branch  -r $LAVA_REVNO lp:~mwhudson/lava-server/use-buildout $code
-    pushd $code
-    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache .
-    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs .
-    ln -sf $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
-    ${venv}/bin/buildout
-    popd
-    set +ex
-
-    gen_lava_dispatcher_config
-
     if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf ]; then
         echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
         cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
@@ -706,6 +691,24 @@ install_app() {
 }
 SETTINGS_CONF
     fi
+
+    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/buildout-venv"
+    local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/r$LAVA_REVNO"
+
+    set -ex
+    bzr branch  -r $LAVA_REVNO /home/mwhudson/canonical/repos/lava-server/use-buildout $code
+    pushd $code
+    ln -sf ${venv}/bin/uwsgi bin/
+    ln -sf $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache .
+    ln -sf $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs .
+    ln -sf $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
+    ${venv}/bin/buildout
+    echo $?
+    popd
+    set +ex
+
+    gen_lava_dispatcher_config
+
 
 }
 
