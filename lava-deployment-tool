@@ -1295,8 +1295,9 @@ cmd_install() {
     fi
 
     if [ -z "$LAVA_REVNO" ]; then
+        echo -n "Determining revno to deploy... "
         LAVA_REVNO="$(bzr revno $LAVA_SERVER_BRANCH)"
-        return
+        echo $LAVA_REVNO
     fi
 
     # Sanity checking, ensure that instance does not exist yet
