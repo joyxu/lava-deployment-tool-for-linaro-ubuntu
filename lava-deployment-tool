@@ -615,7 +615,7 @@ INSTANCE_SITE
     # Create uWSGI configuration file
     cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.ini <<UWSGI_INI
 [uwsgi]
-home = $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/buildout-venv
+home = $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv
 socket = $LAVA_PREFIX/$LAVA_INSTANCE/run/uwsgi.sock
 chmod-socket = 660
 wsgi-file = $LAVA_PREFIX/$LAVA_INSTANCE/bin/lava-server.wsgi
