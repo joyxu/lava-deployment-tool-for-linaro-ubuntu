@@ -313,8 +313,10 @@ install_fs() {
 
     # For buildout
     bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache
+    #mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs
+    #mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache
+    ln -s /srv/lava/instances/dev2/download-cache $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache
+    ln -s /srv/lava/instances/dev2/eggs $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
 
     # Allow apache (running as www-data) to read our public web files 
