@@ -359,7 +359,7 @@ wizard_buildout () {
 install_buildout () {
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/buildout-venv"
     virtualenv "${venv}"
-    "${venv}/bin/pip" install buildout
+    "${venv}/bin/pip" install zc.buildout
 }
 
 defaults_database() {
