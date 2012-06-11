@@ -357,9 +357,10 @@ wizard_buildout () {
 }
 
 install_buildout () {
-    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/buildout-venv"
+    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     virtualenv "${venv}"
-    "${venv}/bin/pip" install zc.buildout
+    "${venv}/bin/pip" install zc.buildout==1.5.2
+    "${venv}/bin/pip" install http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
 }
 
 defaults_database() {
@@ -624,6 +625,7 @@ INSTANCE_SITE
     # Create uWSGI configuration file
     cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.ini <<UWSGI_INI
 [uwsgi]
+home = $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/buildout-venv
 socket = $LAVA_PREFIX/$LAVA_INSTANCE/run/uwsgi.sock
 chmod-socket = 660
 wsgi-file = $LAVA_PREFIX/$LAVA_INSTANCE/bin/lava-server.wsgi
@@ -692,15 +694,15 @@ install_app() {
 SETTINGS_CONF
     fi
 
-    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/buildout-venv"
+    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/r$LAVA_REVNO"
 
     set -ex
     bzr branch  -r $LAVA_REVNO /home/mwhudson/canonical/repos/lava-server/use-buildout $code
     pushd $code
-    ln -sf ${venv}/bin/uwsgi bin/
-    ln -sf $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache .
-    ln -sf $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs .
+    ln -s ${venv}/bin/uwsgi bin/
+    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache .
+    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs .
     ln -sf $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
     ${venv}/bin/buildout
     echo $?
@@ -708,8 +710,6 @@ SETTINGS_CONF
     set +ex
 
     gen_lava_dispatcher_config
-
-
 }
 
 
