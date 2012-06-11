@@ -705,7 +705,6 @@ SETTINGS_CONF
     ln -s $LAVA_DOWNLOAD_CACHE download-cache
     ln -s $LAVA_EGG_CACHE eggs
     ${venv}/bin/buildout
-    echo $?
     popd
     set +ex
 
