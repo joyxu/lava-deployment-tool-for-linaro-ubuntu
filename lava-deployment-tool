@@ -27,7 +27,7 @@ export LAVA_SETUP_REQUIRED_VERSION=20
 export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
-LAVA_INSTALL_STEPS="user fs venv database broker web_hosting app config_app"
+LAVA_INSTALL_STEPS="user fs buildout database broker web_hosting app config_app"
 
 
 os_check() {
@@ -321,6 +321,12 @@ install_fs() {
     # Temporary files
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/tmp
 
+    # For buildout
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/code
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache
+    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
+
     # Allow apache (running as www-data) to read our public web files 
     sudo chgrp -R www-data $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/
     sudo chmod -R g+rXs $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/
@@ -350,58 +356,23 @@ install_fs() {
 }
 
 
-defaults_venv() {
+defaults_buildout () {
     true
 }
 
-pkglist_venv() {
-    echo "https://github.com/zyga/pip/tarball/develop"
+pkglist_buildout () {
+    true
 }
 
-
-wizard_venv() {
-    echo
-    echo "Python virtual environment configuration"
-    echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-    echo
-    echo "We will use python virtualenv to isolate LAVA code from your system"
-    echo
-    echo "Python version: $LAVA_PYTHON"
-    echo
-    echo "You can interact with this source code (installation) as if it"
-    echo "was globally by invoking the following line:"
-    echo
-    echo "$ . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate"
-    echo
-    echo "(Note that the intent is to source (read) the file, not execute it)"
-    echo "When you are done just type:"
-    echo
-    echo "$ deactivate"
-    echo
-    echo "While inside your virtualenv you can invoke additional commands,"
-    echo "most notably, lava-server manage ..."
-    echo 
-    echo "(this is just a notification, it is not configurable)"
-    echo
-    echo "next    - continue"
-
-    read -p "Please decide what to do: " RESPONSE
-
-    case "$RESPONSE" in
-        next)
-            return 0  # loop complete
-    esac
-    return 1  # another loop please
+wizard_buildout () {
+    true
 }
 
-
-install_venv() {
-    logger "Creating virtualenv using $LAVA_PYTHON for LAVA instance $LAVA_INSTANCE"
-
-    # Create virtualenv
-    virtualenv --no-site-packages --distribute $LAVA_PREFIX/$LAVA_INSTANCE -p $LAVA_PYTHON
+install_buildout () {
+    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/buildout-venv"
+    virtualenv "${venv}"
+    "${venv}/bin/pip" install buildout
 }
-
 
 defaults_database() {
     export LAVA_DB_NAME="lava-$LAVA_INSTANCE"
@@ -782,65 +753,25 @@ wizard_app() {
 
 
 install_app() {
-    echo "Installing/upgrading application code from $LAVA_BUNDLE file"
+    echo "Installing/upgrading application code from a lp:lava-server revision"
 
-    # Clean all builds to allow package upgrading
-    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/build/*
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
     set -x
-    pip install --upgrade $PIP_PROXY_OPTION "$LAVA_BUNDLE" || die "Failed to install application bundle"
+    XXX buildout here
     set +x
-    deactivate
 
     gen_lava_dispatcher_config
 
     if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf ]; then
-        if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server ]; then
-            # We're in editable server mode, let's use alternate paths for tempates and static files
-            echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for DEVELOPMENT"
-            echo "This means that lava-server (which has to be special) is installed in editable mode"
-            echo "Some of the paths will refer to $LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server."
-            echo "Even if you later on upgrade to non-editable lava-server those paths"
-            echo "will remain to be in use untill you wipe your old config and upgrade again"
-            cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
+        echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
+        cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
 {
     "DEBUG": false,
     "TEMPLATE_DIRS": [
         "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/templates",
-        "$LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server/lava_server/templates/"
+        "$LAVA_PREFIX/$LAVA_INSTANCE/code/current/lava_server/templates/"
     ],
     "STATICFILES_DIRS": [
-        ["lava-server", "$LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server/lava_server/htdocs/"]
-    ],
-    "MEDIA_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media",
-    "STATIC_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static",
-    "MEDIA_URL": "/media/",
-    "STATIC_URL": "/static/",
-    "MOUNT_POINT": "/",
-    "LOGIN_URL": "/accounts/login/",
-    "LOGIN_REDIRECT_URL": "/",
-    "BROKER_USER": "$LAVA_RABBIT_USER",
-    "BROKER_VHOST": "$LAVA_RABBIT_VHOST",
-    "BROKER_PASSWORD": "$LAVA_RABBIT_PASSWORD",
-    "DATAREPORT_DIRS": [
-        "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/reports"
-    ],
-    "DATAVIEW_DIRS": [
-        "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/views"
-    ]
-}
-SETTINGS_CONF
-        else
-            echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
-            cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
-{
-    "DEBUG": false,
-    "TEMPLATE_DIRS": [
-        "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/templates",
-        "$LAVA_PREFIX/$LAVA_INSTANCE/lib/$LAVA_PYTHON/site-packages/lava_server/templates/"
-    ],
-    "STATICFILES_DIRS": [
-        ["lava-server", "$LAVA_PREFIX/$LAVA_INSTANCE/lib/$LAVA_PYTHON/site-packages/lava_server/htdocs/"]
+        ["lava-server", "$LAVA_PREFIX/$LAVA_INSTANCE/code/current/lava_server/htdocs/"]
     ],
     "MEDIA_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media",
     "STATIC_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static",
@@ -993,15 +924,6 @@ install_config_app() {
         export LAVA_SCHEDULER_ENABLED='yes'
         _save_config
     fi
-
-    echo "Building cache of static files..."
-    set -x
-    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
-    lava-server manage \
-        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
-        --instance=$LAVA_INSTANCE \
-        build_static --noinput --link || die "Failed to update the cache of static content"
-    set +x
 
     echo "Stopping instance for database changes..."
     set -x
@@ -1459,7 +1381,7 @@ _banner() {
 
 cmd_install() {
     export LAVA_INSTANCE=$1
-    export LAVA_BUNDLE=$2
+    export LAVA_REVNO=$2
 
     check_min_version
     _banner
@@ -1469,8 +1391,8 @@ cmd_install() {
         return
     fi
 
-    if [ -z "$LAVA_BUNDLE" ]; then
-        echo "You need to pass the name of the bundle to use as second argument"
+    if [ -z "$LAVA_REVNO" ]; then
+        echo "You need to pass the revision number of lp:lava-server to deploy"
         return
     fi
 
@@ -1489,7 +1411,7 @@ cmd_install() {
 
 cmd_upgrade() {
     export LAVA_INSTANCE=$1
-    export LAVA_BUNDLE=$2
+    export LAVA_REVNO=$2
 
     check_min_version
     _banner
@@ -1499,8 +1421,8 @@ cmd_upgrade() {
         return
     fi
 
-    if [ -z "$LAVA_BUNDLE" ]; then
-        echo "You need to pass the name of the bundle to use as second argument"
+    if [ -z "$LAVA_REVNO" ]; then
+        echo "You need to pass the revision number of lp:lava-server to deploy"
         return
     fi
 
@@ -1794,44 +1716,6 @@ cmd_manage() {
     set +x
 }
 
-
-cmd_bundle() {
-    LAVA_REQUIREMENT=${1:-requirements/requirements.txt}
-    LAVA_BUNDLE=${2:-lava.pybundle}
-    local step
-    for step in $LAVA_INSTALL_STEPS; do
-        defaults_$step
-    done
-    LAVA_FULL_REQUIREMENT=$(mktemp)
-    for step in $LAVA_INSTALL_STEPS; do
-        pkglist_$step >> "$LAVA_FULL_REQUIREMENT"
-    done
-    set -x
-    pip bundle "$LAVA_BUNDLE" $PIP_PROXY_OPTION --timeout=30 --use-mirrors --requirement="$LAVA_FULL_REQUIREMENT" || die "Failed to create bundle"
-    set +x
-    rm -f "$LAVA_FULL_REQUIREMENT"
-}
-
-cmd_preview () {
-    export LAVA_INSTANCE=$1
-    export LAVA_BUNDLE=$2
-
-    check_min_version
-
-    local compare_manifests="$(dirname $(readlink -f "$0"))/_compare_manifests.py"
-
-    _bundle="$(readlink -f $LAVA_BUNDLE)"
-    _tmpdir="$(mktemp -d)"
-
-    trap "rm -rf \"${_tmpdir}\"" EXIT
-
-    cd "${_tmpdir}"
-
-    unzip -qc "${_bundle}" pip-manifest.txt | grep -v '^#' | tr '[A-Z]' '[a-z]' | sort > bundle-versions.txt
-    $LAVA_PREFIX/$LAVA_INSTANCE/bin/pip freeze | tr '[A-Z]' '[a-z]' | sort > installed-versions.txt
-
-    "${compare_manifests}" installed-versions.txt bundle-versions.txt
-}
 
 is_vhost(){
     export LAVA_INSTANCE=$1
