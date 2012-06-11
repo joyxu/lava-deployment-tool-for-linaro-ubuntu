@@ -17,6 +17,7 @@ LAVA_PYTHON=python2.6
 
 # All of LAVA is being served by this uWSGI version
 LAVA_UWSGI=1.0.3
+LAVA_UWSGI_URL=http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
 
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=20
@@ -358,7 +359,7 @@ install_buildout () {
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     virtualenv "${venv}"
     "${venv}/bin/pip" install zc.buildout==1.5.2
-    "${venv}/bin/pip" install http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
+    "${venv}/bin/pip" install $LAVA_UWSGI_URL
 }
 
 defaults_database() {
@@ -557,11 +558,17 @@ install_web_hosting() {
     if [ \! -e /etc/apache2/mods-available/uwsgi.load ]; then
         logger "Building uWSGI apache module..."
         # NOTE: we may not have this file cached as we used bundle to get it
-        if [ ! -e $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fuwsgi-$LAVA_UWSGI.tar.gz ]; then
-            pip install $PIP_PROXY_OPTION --no-install http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz || die "Failed to download uWSGI"
-        fi
-        ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp && tar zxf $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fuwsgi-$LAVA_UWSGI.tar.gz )
-        ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp/uwsgi-$LAVA_UWSGI/apache2 && sudo apxs2 -c -i -a mod_uwsgi.c )
+        _tmpdir="$(mktemp -d)"
+
+        trap "rm -rf \"${_tmpdir}\"" EXIT
+        set -xe
+        pushd $_tmpdir
+        wget -q -O- $LAVA_UWSGI_URL | tar -xz --strip-components=1
+        cd apache2
+        apxs2 -c mod_uwsgi.c
+        sudo apxs2 -i -a mod_uwsgi.c
+        popd
+        set +xe
     fi
 
     # Create apache2 site
