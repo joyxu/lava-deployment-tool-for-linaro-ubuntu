@@ -732,7 +732,11 @@ install_app() {
     set -ex
     bzr branch  -r $LAVA_REVNO lp:~mwhudson/lava-server/use-buildout $code
     . ${venv}/bin/activate
-    (cd $code; buildout)
+    pushd $code
+    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache .
+    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs .
+    buildout
+    popd
     deactivate
     set +ex
 
@@ -770,6 +774,8 @@ install_app() {
 SETTINGS_CONF
     fi
 fi
+
+    ln -sf $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
 }
 
 
