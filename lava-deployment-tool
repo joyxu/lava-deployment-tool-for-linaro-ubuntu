@@ -694,18 +694,19 @@ SETTINGS_CONF
     local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/r$LAVA_REVNO"
 
     set -ex
-    bzr branch  -r $LAVA_REVNO $LAVA_SERVER_BRANCH $code
+    bzr branch -r $LAVA_REVNO $LAVA_SERVER_BRANCH $code
     pushd $code
     ln -s ${venv}/bin/uwsgi bin/
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache .
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs .
-    ln -sf $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
     ${venv}/bin/buildout
     echo $?
     popd
     set +ex
 
     gen_lava_dispatcher_config
+
+    ln -sf $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
 }
 
 
@@ -833,6 +834,13 @@ install_config_app() {
         _save_config
     fi
 
+    echo "Building cache of static files..."
+    set -x
+    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
+    lava-server manage \
+        build_static --noinput --link || die "Failed to update the cache of static content"
+    set +x
+
     echo "Stopping instance for database changes..."
     set -x
     sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true # in case of upgrades
@@ -841,16 +849,12 @@ install_config_app() {
     echo "Synchronizing database..."
     set -x
     lava-server manage \
-        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
-        --instance=$LAVA_INSTANCE \
         syncdb --noinput || die "Failed to synchronize database (run non-migration db updates)"
     set +x
 
     echo "Running migrations..."
     set -x
     lava-server manage \
-        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
-        --instance=$LAVA_INSTANCE \
         migrate --noinput || die "Failed to run database migrations"
     set +x
 
@@ -1614,8 +1618,6 @@ cmd_manage() {
 
     set -x
     lava-server manage \
-        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
-        --instance=$LAVA_INSTANCE \
         "$@"
     set +x
 }
