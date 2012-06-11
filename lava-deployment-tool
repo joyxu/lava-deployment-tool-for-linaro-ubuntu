@@ -618,10 +618,10 @@ install_web_hosting() {
     if [ \! -e /etc/apache2/mods-available/uwsgi.load ]; then
         logger "Building uWSGI apache module..."
         # NOTE: we may not have this file cached as we used bundle to get it
-        if [ ! -e $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fuwsgi-$LAVA_UWSGI.tar.gz ]; then
-            pip install $PIP_PROXY_OPTION --no-install http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz || die "Failed to download uWSGI"
+        if [ ! -e $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fold%2Fuwsgi-$LAVA_UWSGI.tar.gz ]; then
+            pip install $PIP_PROXY_OPTION --no-install http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz || die "Failed to download uWSGI"
         fi
-        ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp && tar zxf $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fuwsgi-$LAVA_UWSGI.tar.gz )
+        ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp && tar zxf $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fold%2Fuwsgi-$LAVA_UWSGI.tar.gz )
         ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp/uwsgi-$LAVA_UWSGI/apache2 && sudo apxs2 -c -i -a mod_uwsgi.c )
     fi
 
