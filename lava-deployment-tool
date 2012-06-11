@@ -9,7 +9,6 @@ LAVA_ROOT=/srv/lava
 # All LAVA instances are created relative to this path
 LAVA_PREFIX=$LAVA_ROOT/instances
 
-
 test -n "$http_proxy" && PIP_PROXY_OPTION="--proxy=$http_proxy"
 
 # All LAVA uses this python version
@@ -312,10 +311,8 @@ install_fs() {
 
     # For buildout
     bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
-    #mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs
-    #mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache
-    ln -s /srv/lava/instances/dev2/download-cache $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache
-    ln -s /srv/lava/instances/dev2/eggs $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
 
     # Allow apache (running as www-data) to read our public web files 
@@ -694,7 +691,7 @@ SETTINGS_CONF
     local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/r$LAVA_REVNO"
 
     set -ex
-    bzr branch  -r $LAVA_REVNO /home/mwhudson/canonical/repos/lava-server/use-buildout $code
+    bzr branch  -r $LAVA_REVNO lp:lava-server $code
     pushd $code
     ln -s ${venv}/bin/uwsgi bin/
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache .
