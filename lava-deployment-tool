@@ -44,7 +44,7 @@ os_check() {
                 oneiric|precise)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools unzip"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools unzip bzr"
                     ;;
             esac
             ;;
@@ -204,11 +204,6 @@ defaults_user() {
 }
 
 
-pkglist_user() {
-    true
-}
-
-
 wizard_user() {
     export LAVA_SYS_USER_DESC="User for LAVA instance $LAVA_INSTANCE"
 
@@ -253,11 +248,6 @@ install_user() {
 
 
 defaults_fs() {
-    true
-}
-
-
-pkglist_fs() {
     true
 }
 
@@ -322,7 +312,7 @@ install_fs() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/tmp
 
     # For buildout
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/code
+    bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/eggs
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/download-cache
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
@@ -360,10 +350,6 @@ defaults_buildout () {
     true
 }
 
-pkglist_buildout () {
-    true
-}
-
 wizard_buildout () {
     true
 }
@@ -378,11 +364,6 @@ defaults_database() {
     export LAVA_DB_NAME="lava-$LAVA_INSTANCE"
     export LAVA_DB_USER="lava-$LAVA_INSTANCE"
     export LAVA_DB_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
-}
-
-
-pkglist_database() {
-    echo psycopg2 
 }
 
 
@@ -462,11 +443,6 @@ defaults_broker() {
 }
 
 
-pkglist_broker() {
-    true
-}
-
-
 wizard_broker() {
     echo
     echo "RabbitMQ configuration"
@@ -511,6 +487,7 @@ defaults_web_hosting() {
 }
 
 
+# XXX here be dragons?
 pkglist_web_hosting() {
     echo "http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz"
     echo "django-seatbelt"
@@ -737,11 +714,6 @@ defaults_app() {
 }
 
 
-pkglist_app() {
-    cat $LAVA_REQUIREMENT
-}
-
-
 wizard_app() {
     echo
     echo "LAVA application configuration"
@@ -754,9 +726,15 @@ wizard_app() {
 install_app() {
     echo "Installing/upgrading application code from a lp:lava-server revision"
 
-    set -x
-    XXX buildout here
-    set +x
+    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/buildout-venv"
+    local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/r$LAVA_REVNO"
+
+    set -ex
+    bzr branch  -r $LAVA_REVNO lp:~mwhudson/lava-server/use-buildout $code
+    . ${venv}/bin/activate
+    (cd $code; buildout)
+    deactivate
+    set +ex
 
     gen_lava_dispatcher_config
 
@@ -797,11 +775,6 @@ fi
 
 defaults_config_app() {
     export LAVA_SCHEDULER_ENABLED=yes
-}
-
-
-pkglist_config_app() {
-    true
 }
 
 
@@ -989,7 +962,7 @@ cmd_setup() {
 
         echo "Updating apt cache..."
         sudo apt-get update
-                                       
+
 	echo "Add Linaro tools ppa"
 	sudo apt-get install --yes python-software-properties
 	sudo add-apt-repository --yes ppa:linaro-maintainers/tools
