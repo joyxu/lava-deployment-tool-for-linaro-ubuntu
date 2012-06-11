@@ -311,8 +311,6 @@ install_fs() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/log
     # Sockets and other runtime stuff
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/run
-    # Source code (used when tracking trunk)
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/src
     # Temporary files
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/tmp
 
