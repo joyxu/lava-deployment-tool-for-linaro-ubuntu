@@ -713,10 +713,9 @@ INSTANCE_SITE
     # Create uWSGI configuration file
     cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.ini <<UWSGI_INI
 [uwsgi]
-home = $LAVA_PREFIX/$LAVA_INSTANCE
 socket = $LAVA_PREFIX/$LAVA_INSTANCE/run/uwsgi.sock
 chmod-socket = 660
-wsgi-file = $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/lava-server.wsgi
+wsgi-file = $LAVA_PREFIX/$LAVA_INSTANCE/bin/lava-server.wsgi
 master = true
 workers = 8
 logto = $LAVA_PREFIX/$LAVA_INSTANCE/var/log/lava-uwsgi.log
@@ -812,11 +811,11 @@ wizard_config_app() {
 
     local _question="Do you want to config the lava-dispatcher?"
     whiptail --title "Configurate the lava-dispatcher?" --yesno "$_question" 10 40 && LAVA_DISPATCHER_CONFIG=yes || LAVA_DISPATCHER_CONFIG=no
-    
+
     if [ $LAVA_DISPATCHER_CONFIG = yes ]; then
         config_lava_dispatcher
     fi
-           
+
     return 0
 }
 
