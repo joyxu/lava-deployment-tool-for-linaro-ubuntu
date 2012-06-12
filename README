@@ -13,7 +13,7 @@ Quickstart
 ^^^^^^^^^^
 
 For the impatient, or those just looking for a cheat sheet but know what they
-are doing otherwise, here are the basic set of commands to get an instance.
+are doing otherwise, here are the basic set of commands to get an instance::
 
  $ ./lava-deployment-tool setup
  $ ./lava-deployment-tool install testinstance
@@ -56,9 +56,9 @@ this installation method is not using pre-built packages you will also need
 development headers and a working compiler to build some of the native (C)
 extensions for python.
 
-This step is largely automated. To perform it run this command:
+This step is largely automated. To perform it run this command::
 
-$ ./lava-deployment-tool setup
+ $ ./lava-deployment-tool setup
 
 This step also prepares file-system places for LAVA. In particular it
 creates /srv/lava/ where all LAVA instances are later stored.
@@ -80,9 +80,9 @@ project on Launchpad.  By default, lava-deployment-tool creates an
 instance that uses the buildout.cfg file from the most recent
 revision of the lp:lava-server branch.
 
-To create an instance, run:
+To create an instance, run::
 
-$ ./lava-deployment-tool install NAME
+ $ ./lava-deployment-tool install NAME
 
 This will ask you a few questions and then create a fresh instance
 called NAME.
@@ -103,9 +103,9 @@ You can override details about how to construct the instance:
 See `different kinds of deployment`_ below for more about customizing
 instances.
 
-To create an administrator user for a newly-created instance:
+To create an administrator user for a newly-created instance::
 
-$ ./lava-deployment-tool manage NAME createsuperuser
+ $ ./lava-deployment-tool manage NAME createsuperuser
 
 This user can access the administration panel, edit permissions to other users
 and add bundle streams, devices, etc...
@@ -123,9 +123,9 @@ LAVA instances store persistent data in two locations:
  * In a PostgreSQL database in the default cluster named $LAVA_INSTANCE
 
 Backing up those two items is sufficient to preserve the entire system
-state.  You can do this by running:
+state.  You can do this by running::
 
-$ lava-deployment-tool backup $LAVA_INSTANCE
+ $ lava-deployment-tool backup $LAVA_INSTANCE
 
 which will create a backup with an ID based on the current date and
 time in a directory named
@@ -135,9 +135,9 @@ want.
 
 Generally before backing up you should make sure that LAVA instance is
 turned off. This depends on how your instance is started. If you were
-using upstart the following shell command should turn LAVA off:
+using upstart the following shell command should turn LAVA off::
 
-$ sudo stop lava
+ $ sudo stop lava
 
 If you take a backup while running, you will need to do some manual
 cleanup when you restore from it.
@@ -145,18 +145,18 @@ cleanup when you restore from it.
 Restoring from backup
 ^^^^^^^^^^^^^^^^^^^^^
 
-Running the command
+Running the command ::
 
-$ lava-deployment-tool restore $LAVA_INSTANCE $SNAPSHOT_ID
+ $ lava-deployment-tool restore $LAVA_INSTANCE $SNAPSHOT_ID
 
 will restore the given snapshot of the named instance.  This will
 first erase the database and media files of the named instance, so be
 careful what you type!
 
 You can restore an instance from a backup taken from a distinct
-instance with a command like:
+instance with a command like::
 
-$ lava-deployment-tool restore $TARGET_INSTANCE $SOURCE_INSTANCE/$SNAPSHOT_ID
+ $ lava-deployment-tool restore $TARGET_INSTANCE $SOURCE_INSTANCE/$SNAPSHOT_ID
 
 Currently to restore from a backup taken on a different machine, you
 have to put it under /srv/lava/backups, then run an appropriate
@@ -223,21 +223,22 @@ For instance, if you wanted to have two instances installed locally
 called "test1" and "test2", you can use the "location" toggle to set it
 so that you can access them on your local machine using:
 http://localhost/test1
-http://localhost/test2
+http://localhost/test2 ::
 
-$ lava-deployment-tool toggle $LAVA_INSTANCE location
+ $ lava-deployment-tool toggle $LAVA_INSTANCE location
 
 Then you can access the LAVA instance via:
     http://IP/$LAVA_INSTANCE
 
-You also can turn it back with the command below:
+You also can turn it back with the command below::
 
-$ lava-deployment-tool toggle $LAVA_INSTANCE vhost
+ $ lava-deployment-tool toggle $LAVA_INSTANCE vhost
 
 Then you can access the LAVA instance via:
     http://virtual-host/
 
-There is also a command to toggle all LAVA instances one time:
+There is also a command to toggle all LAVA instances one time::
+
     lava-deployment-tool toggle_all location
 
 Anatomy of a LAVA instance
@@ -245,11 +246,11 @@ Anatomy of a LAVA instance
 
 An instance is composed of several parts:
 
- - A new system user account called $LAVA_INSTANCE
+ - A new system user account called lava-$LAVA_INSTANCE
  - A directory tree similar to standard unix filesystem rooted
    in $LAVA_PREFIX/$LAVA_INSTANCE/
  - A postgres user and database in the default cluster, both named
-   $LAVA_INSTANCE
+   lava-$LAVA_INSTANCE
 
 A note on Postgres versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
