@@ -691,7 +691,7 @@ SETTINGS_CONF
 
     gen_lava_dispatcher_config
 
-    ln -sf $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
+    ln -sfT $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
 }
 
 
