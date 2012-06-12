@@ -9,6 +9,7 @@ deployment. For that it is likely we will turn to Juju (https://juju.ubuntu.com/
 
 Quickstart
 ^^^^^^^^^^
+
 For the impatient, or those just looking for a cheat sheet but know what they
 are doing otherwise, here are the basic set of commands to get an instance.
 
@@ -56,41 +57,55 @@ This step is largely automated. To perform it run this command:
 
 $ ./lava-deployment-tool setup
 
-This step also prepares file-system places for LAVA. In particular it creates
-/srv/lava/ where all LAVA instances are later stored.
+This step also prepares file-system places for LAVA. In particular it
+creates /srv/lava/ where all LAVA instances are later stored.
 
-Creating LAVA instance
-^^^^^^^^^^^^^^^^^^^^^^
+Creating an instance of LAVA
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can create multiple LAVA instances on a single machine. Being able to do
-so is very valuable for testing and developing LAVA itself. Before installing
-you must first create a bundle of sources you wish to install.  This simply 
-downloads all the things you intend to install into a single, local archive
-so that installation or updating is not impacted by any problems getting the
-sources later.  This also enables offline installs, or installs behind a
-restrictive firewall by allowing you to download the bundle in advance.
-To create the bundle, run:
+An instance of LAVA is a self-contained installation of LAVA.  This
+means the code that makes up LAVA, configuration data, a Postgres
+database, and the log files and test result bundles produced by
+running tests.
 
-$ ./lava-deployment-tool bundle URL_to_requirements [bundle_file_name]
-If you do not specify the bundle_file_name, it will use the name 'lava.pybundle'
+You can create multiple LAVA instances on a single machine, which is
+very valuable for testing and developing LAVA itself.
 
-To create a new instance run this command:
+The code part of an instance is described by a `buildout`_
+configuration file, which lives in a branch of the `lava-server`_
+project on Launchpad.  By default, lava-deployment-tool creates an
+instance that uses the buildout.cfg file from the most recent
+revision of the lp:lava-server branch.
 
-$ ./lava-deployment-tool install NAME BUNDLE
+To create an instance, run:
 
-This will create a fresh instance called NAME, the instance will be composed of
-the software specified in the requirements file that was used to build the
-bundle and associated dependencies.
+$ ./lava-deployment-tool install NAME
 
-To create an administrator user for this instance:
+This will ask you a few questions and then create a fresh instance
+called NAME.
+
+You can override details about how to construct the instance:
+
+ 1. To override the branch to deploy from, set LAVA_SERVER_BRANCH in
+    the environment.
+
+ 2. To override the name of the buildout config file, set
+    LAVA_BUILDOUT_CFG.
+
+ 3. To deploy a specific revision of LAVA_SERVER_BRANCH, add the
+    revision number to the command line:
+
+    $ ./lava-deployment-tool install NAME <revno>
+
+See `different kinds of deployment`_ below for more about customizing
+instances.
+
+To create an administrator user for a newly-created instance:
 
 $ ./lava-deployment-tool manage NAME createsuperuser
 
 This user can access the administration panel, edit permissions to other users
 and add bundle streams, devices, etc...
-
-The script produces verbose output, at the end it should say that everything
-went fine.
 
 Backing Up LAVA instance
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -116,7 +131,7 @@ Generally before backing up you should make sure that LAVA instance is
 turned off. This depends on how your instance is started. If you were
 using upstart the following shell command should turn LAVA off:
 
-$ sudo service lava stop
+$ sudo stop lava
 
 If you take a backup while running, you will need to do some manual
 cleanup when you restore from it.
@@ -147,54 +162,47 @@ You cannot restore to an instance while it is running.
 Updating LAVA instance
 ^^^^^^^^^^^^^^^^^^^^^^
 
-LAVA is released periodically. Currently this is once a month but the release
-cycle becomes more and more fluid and eventually we'd like to release multiple
-tiny changes every day.
+In some sense, each revision of $LAVA_SERVER_BRANCH is a release and
+can be updated to (from time to time a revision of lp:lava-server will
+receive additional testing and be tagged as a release).  You can use
+lava-deployment-tool to update to a revision of the LAVA_SERVER_BRANCH
+that was used for that instance::
 
-Once you installed some LAVA components you can upgrade your installation to a
-more recent release using this deployment tool. There are some important
-upgrade considerations:
+ $ ./lava-deployment-tool update <revno>
 
-1) Upgrades may alter the database or persistent media files. It is wise to
-perform a full system backup before each upgrade. While we don't anticipate
-catastrophic failures it's better to be safe than sorry. Refer to the previous
-chapter for details.
+There are some points to consider:
 
-2) Some database schema changes take a lot of time to finish. We try to
-minimize such changes but as you can install any third-party LAVA extensions we
-cannot predict the overall downtime in such case. For official Linaro releases
-please refer to our monthly release notes that are available at
-http://lava.readthedocs.org/
+1) Upgrades may alter the database or persistent media files. It is
+   wise to perform a full system backup before each upgrade. While we
+   don't anticipate catastrophic failures it's better to be safe than
+   sorry. Refer to the previous chapter for details.
 
-3) Upgrades may introduce additional dependencies, which will be installed
-automatically. Periodically we make use of additional third party open source
-libraries. Those libraries will be installed for a single LAVA instance
-_only_. Your system libraries are not affected by this step. 
+2) Upgrades may introduce additional dependencies, which will be
+   installed automatically. Periodically we make use of additional
+   third party open source libraries. Those libraries will be
+   installed for a single LAVA instance _only_. Your system libraries
+   are not affected by this step.
 
-4) Upgrades require network access. If you are behind a firewall or a
-corporate http proxy you may experience failures. Please note that the
-upgrade process does not install components without first downloading all of
-the required pieces so in case of a network failure your current installation
-should not be affected. While typically only HTTP and HTTPS protocols are
-being used at times you may see attempts to connect to native protocols used
-by git, bazaar or mercurial.
+3) Upgrades require network access. If you are behind a firewall or a
+   corporate http proxy you may experience failures. Please note that the
+   upgrade process does not install components without first downloading all of
+   the required pieces so in case of a network failure your current installation
+   should not be affected. While typically only HTTP and HTTPS protocols are
+   being used at times you may see attempts to connect to native protocols used
+   by git, bazaar or mercurial.
 
-5) Upgrading process rebuilds the collection of static assets served by
-Apache. During that moment you may encounter a very brief failure to resolve
-some of the static assets (typically images, cascading style sheets and
-javascript libraries)
+4) The upgrade works by first installing the new code independently
+   from the currently running code, updates a symlink to make the new
+   code current, runs any database migrations that are needed and
+   restarts the services.  This means that many, but not all, kinds of
+   error during upgrade will not result in disruption to the running
+   service.
 
-Prior to upgrading and instance, you will need to build a new bundle based
-on your new requirements file:
+5) Upgrading process rebuilds the collection of static assets served
+   by Apache.  During that moment you may encounter a very brief
+   failure to resolve some of the static assets (typically images,
+   cascading style sheets and javascript libraries)
 
-$ ./lava-deployment-tool bundle URL-to-requirements [bundle_file_name]
-
-To upgrade an existing instance run the following command:
-
-$ ./lava-deployment-tool upgrade NAME BUNDLE
-
-Again the NAME and URL-to-requirements have the same meaning as in the
-install command mentioned in preceding chapter.
 
 Installing multiple LAVA instances on single IP machine
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
