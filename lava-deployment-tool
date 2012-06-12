@@ -1336,8 +1336,8 @@ cmd_upgrade() {
     fi
 
     _load_configuration "$LAVA_INSTANCE"
-    install_app || die "Failed to upgrade application code"
-    install_config_app || die "Failed to run post-upgrade configuration"
+    install_app
+    install_config_app
 }
 
 
