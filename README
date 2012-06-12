@@ -7,6 +7,8 @@ are expected to perform adequately with more concurrent users. This tool is
 not, however, designed for multi-machine installation, including cloud
 deployment. For that it is likely we will turn to Juju (https://juju.ubuntu.com/)
 
+.. contents::
+
 Quickstart
 ^^^^^^^^^^
 
@@ -16,9 +18,10 @@ are doing otherwise, here are the basic set of commands to get an instance.
  $ ./lava-deployment-tool setup
  $ ./lava-deployment-tool install testinstance
  $ ./lava-deployment-tool manage testinstance createsuperuser
+ $ ./lava-deployment-tool manage testinstance runserver
 
 Assuming everything went well, you should be able to point a web
-browser at the system you did this, see the lava-server default page
+browser at http://127.0.0.1:8000/, see the lava-server default page
 and sign-in.
 
 
@@ -106,6 +109,9 @@ $ ./lava-deployment-tool manage NAME createsuperuser
 
 This user can access the administration panel, edit permissions to other users
 and add bundle streams, devices, etc...
+
+.. _buildout: http://www.buildout.org/
+.. _lava-server: https://launchpad.net/lava-server
 
 Backing Up LAVA instance
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -205,7 +211,7 @@ There are some points to consider:
 
 
 Installing multiple LAVA instances on single IP machine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 After installing and starting a LAVA instance using the instructions above,
 you can use "toggle" sub command to change how you access the instance.
@@ -253,6 +259,93 @@ cluster (on Ubuntu this is the 'main' cluster of whichever version of
 postgres was installed first).  Using a different version/cluster and
 moving between versions is not technically difficult but not currently
 supported.
+
+Different kinds of deployment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Production-like
+---------------
+
+For our production deployment, we use the buildout-production.cfg
+buildout file which completely locks down the version of everything
+that's being deployed.  If you want to run the same kind of deployment
+as we do, set LAVA_BUILDOUT_CFG to ``buildout-production.cfg`` when
+creating the instance::
+
+ $ LAVA_BUILDOUT_CFG=buildout-production.cfg lava-deployment-tool install production
+
+To update the version of some component that is deployed we release
+that component, update the buildout-production.cfg file in
+lp:lava-server to refer to the new version and deploy the new
+revision.
+
+Local Development
+-----------------
+
+There is a distinction between doing work on a branch of
+``lava-server`` itself and working on a branch of some other component
+such as ``lava-scheduler``.
+
+Working on a lava-server branch
++++++++++++++++++++++++++++++++
+
+Create an instance if needed.  Make a branch of lava-server inside
+$instance/code/::
+
+ $ cd /srv/lava/instances/testinstance/code
+ $ bzr branch lp:lava-server shiny-feature
+ $ cp -r current/{eggs,download-cache,bin} shiny-feature # This line is a hack!
+ $ cd shiny-feature
+ $ ./bin/buildout
+ $ cd ..
+ $ ln -sfT shiny-feature current
+
+Then you can hack inside shiny-feature as required.
+
+Working on the branch of another component
+++++++++++++++++++++++++++++++++++++++++++
+
+Again, create an instance if needed.  Put a branch, or a symlink to a
+branch, of the component you wish to work in into
+/srv/lava/instances/$instances/code/current/local.  Run buildout.
+Hack.  Profit.  For example::
+
+  $ bzr branch lp:lava-scheduler ~/src/my-scheduler-branch
+  $ cd /srv/lava/instances/$instances/code/current
+  $ ln -s ~/src/my-scheduler-branch local/ # The name of the symlink doesn't matter;
+                                           # buildout looks at the setup.py
+  $ ./bin/buildout
+
+Limited Deployments
+-------------------
+
+For a limited deployment, for example if you do not want to run the
+scheduler, you can set ``LAVA_BUILDOUT_CFG`` to point to a buildout
+config file you create.  Currently you can only do this after an
+instance is created (unfortunately).  So create an instance::
+
+ $ lava-deployment-tool install limited
+
+Create the custom buildout.cfg::
+
+ $ cat > /srv/lava/instances/limited/code/custom.cfg <<EOF
+ [buildout]
+ extends = buildout.cfg
+
+ [server]
+ eggs -= lava-scheduler
+ EOF
+
+And set it to be used in ``instance.conf``::
+
+ $ vim /srv/lava/instances/limited/code/custom.cfg
+ $ grep LAVA_BUILDOUT_CFG /srv/lava/instances/limited/code/custom.cfg
+ LAVA_BUILDOUT_CFG='../custom.cfg'
+
+Finally, 'upgrade' the instance to get it to use the new config file::
+
+ $ ./lava-deployment-tool upgrade limited
+
 
 Contact and bug reports
 ^^^^^^^^^^^^^^^^^^^^^^^

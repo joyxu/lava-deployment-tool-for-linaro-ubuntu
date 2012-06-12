@@ -1,5 +1,5 @@
 #!/bin/bash
-LAVA_DEPLOYMENT_TOOL_VERSION="0.4"
+LAVA_DEPLOYMENT_TOOL_VERSION="0.5"
 
 # Global Configuration
 
@@ -664,18 +664,20 @@ SETTINGS_CONF
     local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/r$LAVA_REVNO"
 
     set -ex
-    bzr branch -r $LAVA_REVNO $LAVA_SERVER_BRANCH $code
-    pushd $code
-    ln -s ${venv}/bin/{uwsgi,buildout} bin/
-    ln -s $LAVA_DOWNLOAD_CACHE download-cache
-    ln -s $LAVA_EGG_CACHE eggs
+    if [ ! -e ${code} ]; then
+        bzr branch -r $LAVA_REVNO $LAVA_SERVER_BRANCH $code
+        ln -s ${venv}/bin/{uwsgi,buildout} ${code}/bin/
+        ln -s $LAVA_DOWNLOAD_CACHE ${code}/download-cache
+        ln -s $LAVA_EGG_CACHE ${code}/eggs
+    fi
     # If LAVA_BUILDOUT_CFG does not specify a file in the branch,
     # symlink it in here before running buildout (as buildout works
     # relative to the config file).
     local cfg="$(basename "${LAVA_BUILDOUT_CFG}")"
     if [ "${cfg}" != "${LAVA_BUILDOUT_CFG}" ]; then
-        ln -sT "${LAVA_BUILDOUT_CFG}" "${cfg}"
+        ln -sfT "${LAVA_BUILDOUT_CFG}" "${cfg}"
     fi
+    pushd $code
     ${venv}/bin/buildout -c "${cfg}"
     popd
     set +ex
@@ -1332,8 +1334,9 @@ cmd_upgrade() {
     fi
 
     if [ -z "$LAVA_REVNO" ]; then
-        echo "You need to pass the revision number of $LAVA_SERVER_BRANCH to deploy"
-        return
+        echo -n "Determining revno to deploy... "
+        LAVA_REVNO="$(bzr revno $LAVA_SERVER_BRANCH)"
+        echo $LAVA_REVNO
     fi
 
     # Sanity checking, ensure that instance exist
