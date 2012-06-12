@@ -669,7 +669,14 @@ SETTINGS_CONF
     ln -s ${venv}/bin/{uwsgi,buildout} bin/
     ln -s $LAVA_DOWNLOAD_CACHE download-cache
     ln -s $LAVA_EGG_CACHE eggs
-    ${venv}/bin/buildout -c "${LAVA_BUILDOUT_CFG}"
+    # If LAVA_BUILDOUT_CFG does not specify a file in the branch,
+    # symlink it in here before running buildout (as buildout works
+    # relative to the config file).
+    local cfg="$(basename "${LAVA_BUILDOUT_CFG}")"
+    if [ "${cfg}" != "${LAVA_BUILDOUT_CFG}" ]; then
+        ln -sT "${LAVA_BUILDOUT_CFG}" "${cfg}"
+    fi
+    ${venv}/bin/buildout -c "${cfg}"
     popd
     set +ex
 
