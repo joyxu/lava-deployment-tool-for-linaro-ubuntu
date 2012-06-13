@@ -1389,16 +1389,20 @@ _maybe_pre_convert_to_buildout () {
 
 
 _maybe_post_convert_to_buildout () {
+    local instpath=$LAVA_PREFIX/$LAVA_INSTANCE
     set -xe
-    if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/lib ]; then
+    if [ ! -e $instpath/lib ]; then
         return
     fi
-    $LAVA_PREFIX/$LAVA_INSTANCE/bin/pip freeze > $LAVA_PREFIX/$LAVA_INSTANCE/last-pip-installed-versions.txt
-    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/{bin,lib,src,build,local}
-    rm $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/lava-server.wsgi
-    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
+    $instpath/bin/pip freeze > $instpath/last-pip-installed-versions.txt
+    rm -rf $instpath/{bin,lib,src,build,local}
+    rm $instpath/etc/lava-server/lava-server.wsgi
+    ln -s $instpath/code/current/bin $instpath
     sed -i -e 's%lib/python2\../site-packages/lava_server%code/current/lava_server%' \
-        $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf
+        $instpath/etc/lava-server/settings.conf
+    sed -i -e "s%home = $instpath%&/var/lib/bootstrap-venv%" \
+        -e "s%$instpath/etc/lava-server/lava-server\.wsgi%$instpath/bin/lava-server.wsgi%" \
+        $instpath/etc/lava-server/uwsgi.ini
     set +xe
 }
 

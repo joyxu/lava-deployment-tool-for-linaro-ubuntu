@@ -24,7 +24,6 @@ Assuming everything went well, you should be able to point a web
 browser at http://127.0.0.1:8000/, see the lava-server default page
 and sign-in.
 
-
 Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -208,6 +207,9 @@ There are some points to consider:
    by Apache.  During that moment you may encounter a very brief
    failure to resolve some of the static assets (typically images,
    cascading style sheets and javascript libraries)
+
+
+Upgrading from 
 
 
 Installing multiple LAVA instances on single IP machine
