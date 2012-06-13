@@ -339,12 +339,14 @@ wizard_buildout () {
 }
 
 install_buildout () {
+    set -xe
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     virtualenv "${venv}"
     "${venv}/bin/pip" $PIP_PROXY_OPTION install \
         $LAVA_DOWNLOAD_CACHE/dist/zc.buildout-1.5.2.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/bzr-2.5.1.tar.gz
+    set +xe
 }
 
 defaults_database() {
@@ -903,7 +905,7 @@ cmd_setup() {
         echo "Creating buildout caches"
         sudo mkdir -p $LAVA_EGG_CACHE
         sudo chown $(whoami):$(id -gn) $LAVA_EGG_CACHE
-        sudo mkdir -p $LAVA_DOWNLOAD_CACHE
+        sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
         sudo chown $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
         pushd $LAVA_DOWNLOAD_CACHE/dist
         wget https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz
