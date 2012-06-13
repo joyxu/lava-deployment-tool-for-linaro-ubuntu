@@ -10,7 +10,7 @@ LAVA_ROOT=/srv/lava
 LAVA_PREFIX=$LAVA_ROOT/instances
 
 # Deploy revisions of this branch
-LAVA_SERVER_BRANCH="${LAVA_SERVER_BRANCH-lp:~mwhudson/lava-server/use-buildout}"
+LAVA_SERVER_BRANCH="${LAVA_SERVER_BRANCH-/home/mwhudson/canonical/repos/lava-manifest/trunk}"
 # Use this buildout config file from $LAVA_SERVER_BRANCH
 LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
 
@@ -668,6 +668,7 @@ SETTINGS_CONF
     set -ex
     if [ ! -e ${code} ]; then
         bzr branch -r $LAVA_REVNO $LAVA_SERVER_BRANCH $code
+        mkdir ${code}/bin
         ln -s ${venv}/bin/{uwsgi,buildout} ${code}/bin/
         ln -s $LAVA_DOWNLOAD_CACHE ${code}/download-cache
         ln -s $LAVA_EGG_CACHE ${code}/eggs
