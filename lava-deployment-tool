@@ -1394,10 +1394,10 @@ _maybe_post_convert_to_buildout () {
         return
     fi
     $LAVA_PREFIX/$LAVA_INSTANCE/bin/pip freeze > $LAVA_PREFIX/$LAVA_INSTANCE/last-pip-installed-versions.txt
-    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/{lib,src,build,local}
+    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/{bin,lib,src,build,local}
     rm $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/lava-server.wsgi
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
-    sed -i -e 's%lib/python2\..?/site-packages%buildouts/current/lava_server%' \
+    sed -i -e 's%lib/python2\../site-packages%code/current/lava_server%' \
         $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf
     set +xe
 }
