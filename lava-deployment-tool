@@ -908,7 +908,7 @@ cmd_setup() {
         sudo mkdir -p $LAVA_EGG_CACHE
         sudo chown $(whoami):$(id -gn) $LAVA_EGG_CACHE
         sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
-        sudo chown $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
+        sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
         pushd $LAVA_DOWNLOAD_CACHE/dist
         wget https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz
         wget http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
