@@ -880,6 +880,8 @@ cmd_setup() {
         read -p "Type YES to continue: " RESPONSE
         test "$RESPONSE" = 'YES' || return
 
+        set -xe
+
         echo "Updating apt cache..."
         sudo apt-get update
 
@@ -912,6 +914,8 @@ cmd_setup() {
         wget http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
         wget http://pypi.python.org/packages/source/z/zc.buildout/zc.buildout-1.5.2.tar.gz
         popd
+
+        set +x
         echo "Creating upstart script for: lava"
         sudo sh -c "cat >/etc/init/lava.conf" <<LAVA_CONF
 author "Zygmunt Krynicki"
@@ -1259,14 +1263,14 @@ LAVA_CONF
             _tmpdir="$(mktemp -d)"
 
             trap "rm -rf \"${_tmpdir}\"" EXIT
-            set -xe
+            set -x
             pushd $_tmpdir
             tar -xzf $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz --strip-components=1
             cd apache2
             apxs2 -c mod_uwsgi.c
             sudo apxs2 -i -a mod_uwsgi.c
             popd
-            set +xe
+            set +x
         fi
 
         # Store setup version
