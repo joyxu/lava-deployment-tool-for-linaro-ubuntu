@@ -1363,6 +1363,23 @@ _maybe_pre_convert_to_buildout () {
     if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/code ]; then
         return
     fi
+    if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/lib ]; then
+        echo "Instance appears to be neither pip based or buildout based."
+        echo "Cowardly refusing to proceed."
+        exit 1;
+    fi
+
+    echo "$LAVA_INSTANCE appears to be a pip based instance"
+    echo "This script can attempt to convert it, but this may "
+    echo "lose any custom packages you have installed unless you "
+    echo "already have a plan to cope with that."
+    echo
+    read -p "Proceed? (y/n) " RESPONSE
+
+    if [ "$RESPONSE" != 'y' ]; then
+        exit 1;
+    fi
+
     _save_config
     bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
 }
@@ -1375,6 +1392,8 @@ _maybe_post_convert_to_buildout () {
     $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin/pip freeze > $LAVA_PREFIX/$LAVA_INSTANCE/last-pip-installed-versions.txt
     rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/{lib,src,build,local}
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
+    sed -i -e 's%lib/python2\..?/site-packages%buildouts/current/lava_server%' \
+        $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf
 }
 
 
