@@ -1352,8 +1352,29 @@ cmd_upgrade() {
     fi
 
     _load_configuration "$LAVA_INSTANCE"
+    _maybe_pre_convert_to_buildout
     install_app
+    _maybe_post_convert_to_buildout
     install_config_app
+}
+
+
+_maybe_pre_convert_to_buildout () {
+    if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/code ]; then
+        return
+    fi
+    _save_config
+    bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
+}
+
+
+_maybe_post_convert_to_buildout () {
+    if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/lib ]; then
+        return
+    fi
+    $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin/pip freeze > $LAVA_PREFIX/$LAVA_INSTANCE/last-pip-installed-versions.txt
+    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/{lib,src,build,local}
+    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
 }
 
 
