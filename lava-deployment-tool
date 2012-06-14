@@ -10,8 +10,8 @@ LAVA_ROOT=/srv/lava
 LAVA_PREFIX=$LAVA_ROOT/instances
 
 # Deploy revisions of this branch
-LAVA_SERVER_BRANCH="${LAVA_SERVER_BRANCH-/home/mwhudson/canonical/repos/lava-manifest/trunk}"
-# Use this buildout config file from $LAVA_SERVER_BRANCH
+LAVA_MANIFEST_BRANCH="${LAVA_MANIFEST_BRANCH-lp:lava-manifest}"
+# Use this buildout config file from $LAVA_MANIFEST_BRANCH
 LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
 
 # Where to cache the eggs and downloads for buildbot
@@ -96,7 +96,7 @@ LAVA_PREFIX='$LAVA_PREFIX'
 # Instance name
 LAVA_INSTANCE='$LAVA_INSTANCE'
 # The lava-server branch used by upgrade
-LAVA_SERVER_BRANCH='$LAVA_SERVER_BRANCH'
+LAVA_MANIFEST_BRANCH='$LAVA_MANIFEST_BRANCH'
 LAVA_BUILDOUT_CFG='$LAVA_BUILDOUT_CFG'
 # System configuration (Unix-level)
 LAVA_SYS_USER='$LAVA_SYS_USER'
@@ -628,7 +628,7 @@ wizard_app() {
 
 
 install_app() {
-    echo "Installing/upgrading application code from a revision of $LAVA_SERVER_BRANCH"
+    echo "Installing/upgrading application code from a revision of $LAVA_MANIFEST_BRANCH"
 
     if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf ]; then
         echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
@@ -667,7 +667,7 @@ SETTINGS_CONF
 
     set -ex
     if [ ! -e ${code} ]; then
-        bzr branch -r $LAVA_REVNO $LAVA_SERVER_BRANCH $code
+        bzr branch -r $LAVA_REVNO $LAVA_MANIFEST_BRANCH $code
         mkdir ${code}/bin
         ln -s ${venv}/bin/{uwsgi,buildout} ${code}/bin/
         ln -s $LAVA_DOWNLOAD_CACHE ${code}/download-cache
@@ -1311,7 +1311,7 @@ cmd_install() {
 
     if [ -z "$LAVA_REVNO" ]; then
         echo -n "Determining revno to deploy... "
-        LAVA_REVNO="$(bzr revno $LAVA_SERVER_BRANCH)"
+        LAVA_REVNO="$(bzr revno $LAVA_MANIFEST_BRANCH)"
         echo $LAVA_REVNO
     fi
 
@@ -1342,7 +1342,7 @@ cmd_upgrade() {
 
     if [ -z "$LAVA_REVNO" ]; then
         echo -n "Determining revno to deploy... "
-        LAVA_REVNO="$(bzr revno $LAVA_SERVER_BRANCH)"
+        LAVA_REVNO="$(bzr revno $LAVA_MANIFEST_BRANCH)"
         echo $LAVA_REVNO
     fi
 
@@ -1399,7 +1399,7 @@ _maybe_post_convert_to_buildout () {
     rm -rf $instpath/{bin,lib,src,build,local}
     rm $instpath/etc/lava-server/lava-server.wsgi
     ln -s $instpath/code/current/bin $instpath
-    sed -i -e 's%lib/python2\../site-packages/lava_server%code/current/lava_server%' \
+    sed -i -e 's%lib/python2\../site-packages/lava_server%code/current/server_code%' \
         $instpath/etc/lava-server/settings.conf
     sed -i -e "s%home = $instpath%&/var/lib/bootstrap-venv%" \
         -e "s%$instpath/etc/lava-server/lava-server\.wsgi%$instpath/bin/lava-server.wsgi%" \
