@@ -5,7 +5,9 @@ LAVA Deployment Tool is meant to assist you setting up LAVA on your machine.
 The tool is suitable for both personal and more "production" installations that
 are expected to perform adequately with more concurrent users. This tool is
 not, however, designed for multi-machine installation, including cloud
-deployment. For that it is likely we will turn to Juju (https://juju.ubuntu.com/)
+deployment. For that it is likely we will turn to Juju_.
+
+.. _Juju: https://juju.ubuntu.com/
 
 .. contents::
 
@@ -60,7 +62,7 @@ This step is largely automated. To perform it run this command::
  $ ./lava-deployment-tool setup
 
 This step also prepares file-system places for LAVA. In particular it
-creates /srv/lava/ where all LAVA instances are later stored.
+creates ``/srv/lava/`` where all LAVA instances are later stored.
 
 Creating an instance of LAVA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -74,10 +76,10 @@ You can create multiple LAVA instances on a single machine, which is
 very valuable for testing and developing LAVA itself.
 
 The code part of an instance is described by a `buildout`_
-configuration file, which lives in a branch of the `lava-server`_
+configuration file, which lives in a branch of the `lava-manifest`_
 project on Launchpad.  By default, lava-deployment-tool creates an
-instance that uses the buildout.cfg file from the most recent
-revision of the lp:lava-server branch.
+instance that uses the buildout.cfg file from the most recent revision
+of the lp:lava-manifest branch.
 
 To create an instance, run::
 
@@ -88,16 +90,16 @@ called NAME.
 
 You can override details about how to construct the instance:
 
- 1. To override the branch to deploy from, set LAVA_SERVER_BRANCH in
+ 1. To override the branch to deploy from, set LAVA_MANIFEST_BRANCH in
     the environment.
 
  2. To override the name of the buildout config file, set
     LAVA_BUILDOUT_CFG.
 
- 3. To deploy a specific revision of LAVA_SERVER_BRANCH, add the
-    revision number to the command line:
+ 3. To deploy a specific revision of LAVA_MANIFEST_BRANCH, add the
+    revision number to the command line::
 
-    $ ./lava-deployment-tool install NAME <revno>
+     $ ./lava-deployment-tool install NAME <revno>
 
 See `different kinds of deployment`_ below for more about customizing
 instances.
@@ -110,7 +112,7 @@ This user can access the administration panel, edit permissions to other users
 and add bundle streams, devices, etc...
 
 .. _buildout: http://www.buildout.org/
-.. _lava-server: https://launchpad.net/lava-server
+.. _lava-manifest: https://launchpad.net/lava-manifest
 
 Backing Up LAVA instance
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -118,8 +120,9 @@ Backing Up LAVA instance
 LAVA instances store persistent data in two locations:
 
  * On the filesystem, in the directory
-   /srv/lava/$LAVA_INSTANCE/var/lib/lava-server/media
- * In a PostgreSQL database in the default cluster named $LAVA_INSTANCE
+   ``/srv/lava/$LAVA_INSTANCE/var/lib/lava-server/media``
+ * In a PostgreSQL database in the default cluster named
+   ``lava-$LAVA_INSTANCE``
 
 Backing up those two items is sufficient to preserve the entire system
 state.  You can do this by running::
@@ -167,10 +170,10 @@ You cannot restore to an instance while it is running.
 Updating LAVA instance
 ^^^^^^^^^^^^^^^^^^^^^^
 
-In some sense, each revision of $LAVA_SERVER_BRANCH is a release and
-can be updated to (from time to time a revision of lp:lava-server will
+In some sense, each revision of $LAVA_MANIFEST_BRANCH is a release and
+can be updated to (from time to time a revision of lp:lava-manifest will
 receive additional testing and be tagged as a release).  You can use
-lava-deployment-tool to update to a revision of the LAVA_SERVER_BRANCH
+lava-deployment-tool to update to a revision of the LAVA_MANIFEST_BRANCH
 that was used for that instance::
 
  $ ./lava-deployment-tool upgrade <revno>
@@ -303,39 +306,16 @@ creating the instance::
 
 To update the version of some component that is deployed we release
 that component, update the buildout-production.cfg file in
-lp:lava-server to refer to the new version and deploy the new
+lp:lava-manigest to refer to the new version and deploy the new
 revision.
 
 Local Development
 -----------------
 
-There is a distinction between doing work on a branch of
-``lava-server`` itself and working on a branch of some other component
-such as ``lava-scheduler``.
-
-Working on a lava-server branch
-+++++++++++++++++++++++++++++++
-
-Create an instance if needed.  Make a branch of lava-server inside
-$instance/code/::
-
- $ cd /srv/lava/instances/testinstance/code
- $ bzr branch lp:lava-server shiny-feature
- $ cp -r current/{eggs,download-cache,bin} shiny-feature # This line is a hack!
- $ cd shiny-feature
- $ ./bin/buildout
- $ cd ..
- $ ln -sfT shiny-feature current
-
-Then you can hack inside shiny-feature as required.
-
-Working on the branch of another component
-++++++++++++++++++++++++++++++++++++++++++
-
-Again, create an instance if needed.  Put a branch, or a symlink to a
-branch, of the component you wish to work in into
-/srv/lava/instances/$instances/code/current/local.  Run buildout.
-Hack.  Profit.  For example::
+If you want an instance to use a custom branch of a component, you can
+drop the branch or a symlink to the branch in
+``/srv/lava/instances/$instances/code/current/local`` and re-run
+buildout.  For example::
 
   $ bzr branch lp:lava-scheduler ~/src/my-scheduler-branch
   $ cd /srv/lava/instances/$instances/code/current
