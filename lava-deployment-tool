@@ -911,9 +911,9 @@ cmd_setup() {
         sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
         sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
         pushd $LAVA_DOWNLOAD_CACHE/dist
-        wget https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz
-        wget http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
-        wget http://pypi.python.org/packages/source/z/zc.buildout/zc.buildout-1.5.2.tar.gz
+        [ ! -f bzr-2.5.1.tar.gz ] && wget https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz
+        [ ! -f uwsgi-$LAVA_UWSGI.tar.gz ] && wget http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
+        [ ! -f zc.buildout-1.5.2.tar.gz ] && wget http://pypi.python.org/packages/source/z/zc.buildout/zc.buildout-1.5.2.tar.gz
         popd
 
         set +x
