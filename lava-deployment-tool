@@ -637,10 +637,10 @@ install_app() {
     "DEBUG": false,
     "TEMPLATE_DIRS": [
         "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/templates",
-        "$LAVA_PREFIX/$LAVA_INSTANCE/code/current/lava_server/templates/"
+        "$LAVA_PREFIX/$LAVA_INSTANCE/code/current/server_code/templates/"
     ],
     "STATICFILES_DIRS": [
-        ["lava-server", "$LAVA_PREFIX/$LAVA_INSTANCE/code/current/lava_server/htdocs/"]
+        ["lava-server", "$LAVA_PREFIX/$LAVA_INSTANCE/code/current/server_code/htdocs/"]
     ],
     "MEDIA_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media",
     "STATIC_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static",
