@@ -18,8 +18,6 @@ LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
 LAVA_EGG_CACHE=$LAVA_ROOT/.cache/eggs
 LAVA_DOWNLOAD_CACHE=$LAVA_ROOT/.cache/download-cache
 
-test -n "$http_proxy" && PIP_PROXY_OPTION="--proxy=$http_proxy"
-
 # All LAVA uses this python version
 LAVA_PYTHON=python2.6
 
@@ -342,7 +340,7 @@ install_buildout () {
     set -xe
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     virtualenv "${venv}"
-    "${venv}/bin/pip" $PIP_PROXY_OPTION install \
+    "${venv}/bin/pip" install \
         $LAVA_DOWNLOAD_CACHE/dist/distribute-0.6.24.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/zc.buildout-1.5.2.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz \
