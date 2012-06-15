@@ -343,6 +343,7 @@ install_buildout () {
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     virtualenv "${venv}"
     "${venv}/bin/pip" $PIP_PROXY_OPTION install \
+        $LAVA_DOWNLOAD_CACHE/dist/distribute-0.6.24.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/zc.buildout-1.5.2.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/bzr-2.5.1.tar.gz
@@ -860,6 +861,16 @@ check_min_version() {
     fi
 }
 
+ensure_downloaded_check_sha256 () {
+    local url="$1"
+    local sha256="$2"
+    local filename="$(basename "$url")"
+    if [ ! -f "$filename" ]; then
+        wget "$url"
+    fi
+    echo "$sha256  $filename" | sha256sum -c || die "checksum mismatch on $filename"
+}
+
 cmd_setup() {
     SETUP_VER=0
     if [ -e $LAVA_PREFIX/.setup ]; then
@@ -911,9 +922,18 @@ cmd_setup() {
         sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
         sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
         pushd $LAVA_DOWNLOAD_CACHE/dist
-        [ ! -f bzr-2.5.1.tar.gz ] && wget https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz
-        [ ! -f uwsgi-$LAVA_UWSGI.tar.gz ] && wget http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz
-        [ ! -f zc.buildout-1.5.2.tar.gz ] && wget http://pypi.python.org/packages/source/z/zc.buildout/zc.buildout-1.5.2.tar.gz
+        ensure_downloaded_check_sha256 \
+            http://pypi.python.org/packages/source/d/distribute/distribute-0.6.24.tar.gz \
+            c61fde9f388c9600eb8ee54bd7168039c5fb74fa334138bc49cdf6a6c1341627
+        ensure_downloaded_check_sha256 \
+            https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz \
+            967346fa6cc52971a8dfd5171ec22e1928cf455fb4317013b05b0915ff927982
+        ensure_downloaded_check_sha256 \
+            http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz \
+            81dc137bc8b7b3962e527cafb1a719342c34eb07d568dc61c7766f9a9bcdee62
+        ensure_downloaded_check_sha256 \
+            http://pypi.python.org/packages/source/z/zc.buildout/zc.buildout-1.5.2.tar.gz \
+            0ac5a325d3ffbc5a988fb3ba87f4159d4769cc73e3331cb5234edc8839b6506b
         popd
 
         set +x
