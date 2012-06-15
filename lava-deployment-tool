@@ -339,7 +339,11 @@ wizard_buildout () {
 install_buildout () {
     set -xe
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
-    virtualenv "${venv}"
+    if [ $(virtualenv --version) '<' '1.7' ]; then
+        virtualenv --no-site-packages "${venv}"
+    else
+        virtualenv "${venv}"
+    fi
     "${venv}/bin/pip" install \
         $LAVA_DOWNLOAD_CACHE/dist/distribute-0.6.24.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/zc.buildout-1.5.2.tar.gz \
