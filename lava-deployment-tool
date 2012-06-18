@@ -1,5 +1,5 @@
 #!/bin/bash
-LAVA_DEPLOYMENT_TOOL_VERSION="0.4"
+LAVA_DEPLOYMENT_TOOL_VERSION="0.5"
 
 # Global Configuration
 
@@ -9,10 +9,14 @@ LAVA_ROOT=/srv/lava
 # All LAVA instances are created relative to this path
 LAVA_PREFIX=$LAVA_ROOT/instances
 
-# Pip download cache 
-export PIP_DOWNLOAD_CACHE=$LAVA_ROOT/.downloads
+# Deploy revisions of this branch
+LAVA_MANIFEST_BRANCH="${LAVA_MANIFEST_BRANCH-lp:lava-manifest}"
+# Use this buildout config file from $LAVA_MANIFEST_BRANCH
+LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
 
-test -n "$http_proxy" && PIP_PROXY_OPTION="--proxy=$http_proxy"
+# Where to cache the eggs and downloads for buildbot
+LAVA_EGG_CACHE=$LAVA_ROOT/.cache/eggs
+LAVA_DOWNLOAD_CACHE=$LAVA_ROOT/.cache/download-cache
 
 # All LAVA uses this python version
 LAVA_PYTHON=python2.6
@@ -21,13 +25,13 @@ LAVA_PYTHON=python2.6
 LAVA_UWSGI=1.0.3
 
 # Current version of setup required by lava (global state)
-export LAVA_SETUP_REQUIRED_VERSION=20
+export LAVA_SETUP_REQUIRED_VERSION=22
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
-LAVA_INSTALL_STEPS="user fs venv database broker web_hosting app config_app"
+LAVA_INSTALL_STEPS="user fs buildout database broker web_hosting app config_app"
 
 
 os_check() {
@@ -44,7 +48,7 @@ os_check() {
                 oneiric|precise)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools unzip"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools unzip bzr"
                     ;;
             esac
             ;;
@@ -89,6 +93,9 @@ _show_config() {
 LAVA_PREFIX='$LAVA_PREFIX'
 # Instance name
 LAVA_INSTANCE='$LAVA_INSTANCE'
+# The lava-server branch used by upgrade
+LAVA_MANIFEST_BRANCH='$LAVA_MANIFEST_BRANCH'
+LAVA_BUILDOUT_CFG='$LAVA_BUILDOUT_CFG'
 # System configuration (Unix-level)
 LAVA_SYS_USER='$LAVA_SYS_USER'
 # Apache configuration
@@ -112,29 +119,8 @@ INSTANCE_CONF
 
 _save_config() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/
-    cat >$LAVA_PREFIX/$LAVA_INSTANCE/instance.conf <<INSTANCE_CONF
-# Installation prefix
-LAVA_PREFIX='$LAVA_PREFIX'
-# Instance name
-LAVA_INSTANCE='$LAVA_INSTANCE'
-# System configuration (Unix-level)
-LAVA_SYS_USER='$LAVA_SYS_USER'
-# Apache configuration
-LAVA_APACHE_VHOST='$LAVA_APACHE_VHOST'
-LAVA_DEV_MODE='$LAVA_DEV_MODE'
-# PostgreSQL configuration
-LAVA_DB_NAME='$LAVA_DB_NAME'
-LAVA_DB_USER='$LAVA_DB_USER'
-LAVA_DB_PASSWORD='$LAVA_DB_PASSWORD'
-# RabbitMQ configuration
-LAVA_RABBIT_VHOST='$LAVA_RABBIT_VHOST'
-LAVA_RABBIT_USER='$LAVA_RABBIT_USER'
-LAVA_RABBIT_PASSWORD='$LAVA_RABBIT_PASSWORD'
-# Scheduler configuration
-LAVA_SCHEDULER_ENABLED='$LAVA_SCHEDULER_ENABLED'
-INSTANCE_CONF
+    _show_config >$LAVA_PREFIX/$LAVA_INSTANCE/instance.conf
 }
-
 
 
 _configure() {
@@ -193,7 +179,7 @@ _configure() {
 _install() {
     for install_step in $LAVA_INSTALL_STEPS; do 
         echo "Running installation step $install_step"
-        install_$install_step || die "Failed at $install_step"
+        install_$install_step
     done
     echo "All installation is done"
 }
@@ -201,11 +187,6 @@ _install() {
 
 defaults_user() {
     export LAVA_SYS_USER=lava-$LAVA_INSTANCE
-}
-
-
-pkglist_user() {
-    true
 }
 
 
@@ -253,11 +234,6 @@ install_user() {
 
 
 defaults_fs() {
-    true
-}
-
-
-pkglist_fs() {
     true
 }
 
@@ -316,10 +292,12 @@ install_fs() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/log
     # Sockets and other runtime stuff
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/run
-    # Source code (used when tracking trunk)
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/src
     # Temporary files
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/tmp
+
+    # For buildout
+    bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
+    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
 
     # Allow apache (running as www-data) to read our public web files 
     sudo chgrp -R www-data $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/
@@ -350,68 +328,34 @@ install_fs() {
 }
 
 
-defaults_venv() {
+defaults_buildout () {
     true
 }
 
-pkglist_venv() {
-    echo "https://github.com/zyga/pip/tarball/develop"
+wizard_buildout () {
+    true
 }
 
-
-wizard_venv() {
-    echo
-    echo "Python virtual environment configuration"
-    echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-    echo
-    echo "We will use python virtualenv to isolate LAVA code from your system"
-    echo
-    echo "Python version: $LAVA_PYTHON"
-    echo
-    echo "You can interact with this source code (installation) as if it"
-    echo "was globally by invoking the following line:"
-    echo
-    echo "$ . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate"
-    echo
-    echo "(Note that the intent is to source (read) the file, not execute it)"
-    echo "When you are done just type:"
-    echo
-    echo "$ deactivate"
-    echo
-    echo "While inside your virtualenv you can invoke additional commands,"
-    echo "most notably, lava-server manage ..."
-    echo 
-    echo "(this is just a notification, it is not configurable)"
-    echo
-    echo "next    - continue"
-
-    read -p "Please decide what to do: " RESPONSE
-
-    case "$RESPONSE" in
-        next)
-            return 0  # loop complete
-    esac
-    return 1  # another loop please
+install_buildout () {
+    set -xe
+    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
+    if [ $(virtualenv --version) '<' '1.7' ]; then
+        virtualenv --no-site-packages "${venv}"
+    else
+        virtualenv "${venv}"
+    fi
+    "${venv}/bin/pip" install \
+        $LAVA_DOWNLOAD_CACHE/dist/distribute-0.6.24.tar.gz \
+        $LAVA_DOWNLOAD_CACHE/dist/zc.buildout-1.5.2.tar.gz \
+        $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz \
+        $LAVA_DOWNLOAD_CACHE/dist/bzr-2.5.1.tar.gz
+    set +xe
 }
-
-
-install_venv() {
-    logger "Creating virtualenv using $LAVA_PYTHON for LAVA instance $LAVA_INSTANCE"
-
-    # Create virtualenv
-    virtualenv --no-site-packages --distribute $LAVA_PREFIX/$LAVA_INSTANCE -p $LAVA_PYTHON
-}
-
 
 defaults_database() {
     export LAVA_DB_NAME="lava-$LAVA_INSTANCE"
     export LAVA_DB_USER="lava-$LAVA_INSTANCE"
     export LAVA_DB_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
-}
-
-
-pkglist_database() {
-    echo psycopg2 
 }
 
 
@@ -491,11 +435,6 @@ defaults_broker() {
 }
 
 
-pkglist_broker() {
-    true
-}
-
-
 wizard_broker() {
     echo
     echo "RabbitMQ configuration"
@@ -538,15 +477,6 @@ defaults_web_hosting() {
     export LAVA_APACHE_VHOST=$(hostname)
     export LAVA_DEV_MODE=no
 }
-
-
-pkglist_web_hosting() {
-    echo "http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz"
-    echo "django-seatbelt"
-    echo "django-debian"
-    echo "django-celery"
-}
-
 
 wizard_web_hosting() {
     echo
@@ -615,82 +545,6 @@ INSTANCE_FOR_SINGLE_IP
 install_web_hosting() {
     logger "Installing uWSGI and other hosting parts for LAVA instance $LAVA_INSTANCE"
 
-    if [ \! -e /etc/apache2/mods-available/uwsgi.load ]; then
-        logger "Building uWSGI apache module..."
-        # NOTE: we may not have this file cached as we used bundle to get it
-        if [ ! -e $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fold%2Fuwsgi-$LAVA_UWSGI.tar.gz ]; then
-            pip install $PIP_PROXY_OPTION --no-install http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz || die "Failed to download uWSGI"
-        fi
-        ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp && tar zxf $PIP_DOWNLOAD_CACHE/http%3A%2F%2Fprojects.unbit.it%2Fdownloads%2Fold%2Fuwsgi-$LAVA_UWSGI.tar.gz )
-        ( cd $LAVA_PREFIX/$LAVA_INSTANCE/tmp/uwsgi-$LAVA_UWSGI/apache2 && sudo apxs2 -c -i -a mod_uwsgi.c )
-    fi
-
-    if [ "$LAVA_DEV_MODE" = "yes" ]; then
-        cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/lava-server.wsgi <<INSTANCE_WSGI
-# This file was automatically generated by lava-deployment-tool.sh
-import os
-
-# Force django to use the specified settings module.
-os.environ['DJANGO_SETTINGS_MODULE'] = 'lava_server.settings.debian'
-# And force django-debian to look at our instance-specific configuration directory
-os.environ['DJANGO_DEBIAN_SETTINGS_TEMPLATE'] = '$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/{filename}.conf'
-
-# Setup django WSGI handler
-import django.core.handlers.wsgi
-
-application = django.core.handlers.wsgi.WSGIHandler()
-INSTANCE_WSGI
-    else
-        cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/lava-server.wsgi <<INSTANCE_WSGI
-# This file was automatically generated by lava-deployment-tool.sh
-import os
-import sys
-from django_seatbelt import seatbelt
-
-# We need those to get stuff like threading that seems not to be supported when
-# running virtualenv. Despite virtualenv setting up symlinks for some of the
-# .so files this one does not seem to work. More insight on if this is really
-# the case welcome.
-core_python_paths = [
-    "/usr/lib/$LAVA_PYTHON",
-    "/usr/lib/$LAVA_PYTHON/lib-dynload"]
-
-# Construct new path starting with core python, followed by the rest
-sys.path = core_python_paths + [path for path in sys.path if path not in core_python_paths]
-
-# Filter path, allow only core python paths and prefix paths (no local/user/junk)
-def allow_core_python(path):
-    return path in core_python_paths
-
-# In virtualenv sys.prefix points to the root of the virtualenv, outside it
-# points to the prefix of the system python installation (typically /usr)
-def allow_sys_prefix(path):
-    return path.startswith(sys.prefix)
-
-# seatbelt.solder filters sys.path according to the callbacks specified below.
-seatbelt.solder(allow_callbacks=[allow_sys_prefix, allow_core_python])
-
-# Print summary (for debugging)
-# print "sys.prefix:", sys.prefix
-# print "sys.path:"
-# for path in sys.path:
-#    print " - %s" % path
-
-# Force django to use the specified settings module.
-os.environ['DJANGO_SETTINGS_MODULE'] = 'lava_server.settings.debian'
-# And force django-debian to look at our instance-specific configuration directory
-os.environ['DJANGO_DEBIAN_SETTINGS_TEMPLATE'] = '$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/{filename}.conf'
-
-# Setup django WSGI handler
-import django.core.handlers.wsgi
-
-# NOTE: Here one might also use applications = {'/': application} to define
-# namespace mapping. I'm not sure if this is used by uWSGI or by any handler
-# but I found that in the docs to uWSGI.
-application = django.core.handlers.wsgi.WSGIHandler()
-INSTANCE_WSGI
-    fi
-
     # Create apache2 site
     cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/sites-available/lava-server.conf <<INSTANCE_SITE
 <VirtualHost *:80>
@@ -742,10 +596,10 @@ INSTANCE_SITE
     # Create uWSGI configuration file
     cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.ini <<UWSGI_INI
 [uwsgi]
-home = $LAVA_PREFIX/$LAVA_INSTANCE
+home = $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv
 socket = $LAVA_PREFIX/$LAVA_INSTANCE/run/uwsgi.sock
 chmod-socket = 660
-wsgi-file = $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/lava-server.wsgi
+wsgi-file = $LAVA_PREFIX/$LAVA_INSTANCE/bin/lava-server.wsgi
 master = true
 workers = 8
 logto = $LAVA_PREFIX/$LAVA_INSTANCE/var/log/lava-uwsgi.log
@@ -767,11 +621,6 @@ defaults_app() {
 }
 
 
-pkglist_app() {
-    cat $LAVA_REQUIREMENT
-}
-
-
 wizard_app() {
     echo
     echo "LAVA application configuration"
@@ -782,65 +631,19 @@ wizard_app() {
 
 
 install_app() {
-    echo "Installing/upgrading application code from $LAVA_BUNDLE file"
-
-    # Clean all builds to allow package upgrading
-    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/build/*
-    . $LAVA_PREFIX/$LAVA_INSTANCE/bin/activate
-    set -x
-    pip install --upgrade $PIP_PROXY_OPTION "$LAVA_BUNDLE" || die "Failed to install application bundle"
-    set +x
-    deactivate
-
-    gen_lava_dispatcher_config
+    echo "Installing/upgrading application code from a revision of $LAVA_MANIFEST_BRANCH"
 
     if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf ]; then
-        if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server ]; then
-            # We're in editable server mode, let's use alternate paths for tempates and static files
-            echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for DEVELOPMENT"
-            echo "This means that lava-server (which has to be special) is installed in editable mode"
-            echo "Some of the paths will refer to $LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server."
-            echo "Even if you later on upgrade to non-editable lava-server those paths"
-            echo "will remain to be in use untill you wipe your old config and upgrade again"
-            cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
+        echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
+        cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
 {
     "DEBUG": false,
     "TEMPLATE_DIRS": [
         "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/templates",
-        "$LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server/lava_server/templates/"
+        "$LAVA_PREFIX/$LAVA_INSTANCE/code/current/server_code/templates/"
     ],
     "STATICFILES_DIRS": [
-        ["lava-server", "$LAVA_PREFIX/$LAVA_INSTANCE/src/lava-server/lava_server/htdocs/"]
-    ],
-    "MEDIA_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media",
-    "STATIC_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static",
-    "MEDIA_URL": "/media/",
-    "STATIC_URL": "/static/",
-    "MOUNT_POINT": "/",
-    "LOGIN_URL": "/accounts/login/",
-    "LOGIN_REDIRECT_URL": "/",
-    "BROKER_USER": "$LAVA_RABBIT_USER",
-    "BROKER_VHOST": "$LAVA_RABBIT_VHOST",
-    "BROKER_PASSWORD": "$LAVA_RABBIT_PASSWORD",
-    "DATAREPORT_DIRS": [
-        "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/reports"
-    ],
-    "DATAVIEW_DIRS": [
-        "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/views"
-    ]
-}
-SETTINGS_CONF
-        else
-            echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
-            cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
-{
-    "DEBUG": false,
-    "TEMPLATE_DIRS": [
-        "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/templates",
-        "$LAVA_PREFIX/$LAVA_INSTANCE/lib/$LAVA_PYTHON/site-packages/lava_server/templates/"
-    ],
-    "STATICFILES_DIRS": [
-        ["lava-server", "$LAVA_PREFIX/$LAVA_INSTANCE/lib/$LAVA_PYTHON/site-packages/lava_server/htdocs/"]
+        ["lava-server", "$LAVA_PREFIX/$LAVA_INSTANCE/code/current/server_code/htdocs/"]
     ],
     "MEDIA_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media",
     "STATIC_ROOT": "$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static",
@@ -861,17 +664,38 @@ SETTINGS_CONF
 }
 SETTINGS_CONF
     fi
-fi
+
+    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
+    local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/r$LAVA_REVNO"
+
+    set -ex
+    if [ ! -e ${code} ]; then
+        bzr branch -r $LAVA_REVNO $LAVA_MANIFEST_BRANCH $code
+        mkdir ${code}/bin
+        ln -s ${venv}/bin/{uwsgi,buildout} ${code}/bin/
+        ln -s $LAVA_DOWNLOAD_CACHE ${code}/download-cache
+        ln -s $LAVA_EGG_CACHE ${code}/eggs
+    fi
+    # If LAVA_BUILDOUT_CFG does not specify a file in the branch,
+    # symlink it in here before running buildout (as buildout works
+    # relative to the config file).
+    local cfg="$(basename "${LAVA_BUILDOUT_CFG}")"
+    if [ "${cfg}" != "${LAVA_BUILDOUT_CFG}" ]; then
+        ln -sfT "${LAVA_BUILDOUT_CFG}" "${cfg}"
+    fi
+    pushd $code
+    ${venv}/bin/buildout -c "${cfg}"
+    popd
+    set +ex
+
+    gen_lava_dispatcher_config
+
+    ln -sfT $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
 }
 
 
 defaults_config_app() {
     export LAVA_SCHEDULER_ENABLED=yes
-}
-
-
-pkglist_config_app() {
-    true
 }
 
 
@@ -881,11 +705,11 @@ wizard_config_app() {
 
     local _question="Do you want to config the lava-dispatcher?"
     whiptail --title "Configurate the lava-dispatcher?" --yesno "$_question" 10 40 && LAVA_DISPATCHER_CONFIG=yes || LAVA_DISPATCHER_CONFIG=no
-    
+
     if [ $LAVA_DISPATCHER_CONFIG = yes ]; then
         config_lava_dispatcher
     fi
-           
+
     return 0
 }
 
@@ -998,8 +822,6 @@ install_config_app() {
     set -x
     rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
     lava-server manage \
-        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
-        --instance=$LAVA_INSTANCE \
         build_static --noinput --link || die "Failed to update the cache of static content"
     set +x
 
@@ -1011,16 +833,12 @@ install_config_app() {
     echo "Synchronizing database..."
     set -x
     lava-server manage \
-        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
-        --instance=$LAVA_INSTANCE \
         syncdb --noinput || die "Failed to synchronize database (run non-migration db updates)"
     set +x
 
     echo "Running migrations..."
     set -x
     lava-server manage \
-        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
-        --instance=$LAVA_INSTANCE \
         migrate --noinput || die "Failed to run database migrations"
     set +x
 
@@ -1045,6 +863,16 @@ check_min_version() {
     fi
 }
 
+ensure_downloaded_check_sha256 () {
+    local url="$1"
+    local sha256="$2"
+    local filename="$(basename "$url")"
+    if [ ! -f "$filename" ]; then
+        wget "$url"
+    fi
+    echo "$sha256  $filename" | sha256sum -c || die "checksum mismatch on $filename"
+}
+
 cmd_setup() {
     SETUP_VER=0
     if [ -e $LAVA_PREFIX/.setup ]; then
@@ -1060,15 +888,17 @@ cmd_setup() {
         echo "System preparation steps:"
         echo " 1) Installing $LAVA_PKG_LIST"
         echo " 2) Setting up $LAVA_PREFIX owned by you"
-        echo " 3) Setting up $PIP_DOWNLOAD_CACHE for downloads"
+        echo " 3) Setting up the egg and download cache for buildbot"
         echo " 4) Setting up upstart jobs (incuding removal of stale jobs)"
         echo
         read -p "Type YES to continue: " RESPONSE
         test "$RESPONSE" = 'YES' || return
 
+        set -xe
+
         echo "Updating apt cache..."
         sudo apt-get update
-                                       
+
 	echo "Add Linaro tools ppa"
 	sudo apt-get install --yes python-software-properties
 	sudo add-apt-repository --yes ppa:linaro-maintainers/tools
@@ -1086,12 +916,29 @@ cmd_setup() {
         echo "Creating LAVA filesystem in $LAVA_PREFIX"
         sudo mkdir -p $LAVA_PREFIX
         echo "Making $(whoami) the owner of that location"
-        sudo chown $(whoami):$(id -gn) $LAVA_PREFIX 
+        sudo chown $(whoami):$(id -gn) $LAVA_PREFIX
 
-        echo "Creating PIP download cache in $PIP_DOWNLOAD_CACHE and making it writable"
-        sudo mkdir -p $PIP_DOWNLOAD_CACHE
-        sudo chown $(whoami):$(id -gn) $PIP_DOWNLOAD_CACHE 
+        echo "Creating buildout caches"
+        sudo mkdir -p $LAVA_EGG_CACHE
+        sudo chown $(whoami):$(id -gn) $LAVA_EGG_CACHE
+        sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
+        sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
+        pushd $LAVA_DOWNLOAD_CACHE/dist
+        ensure_downloaded_check_sha256 \
+            http://pypi.python.org/packages/source/d/distribute/distribute-0.6.24.tar.gz \
+            c61fde9f388c9600eb8ee54bd7168039c5fb74fa334138bc49cdf6a6c1341627
+        ensure_downloaded_check_sha256 \
+            https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz \
+            967346fa6cc52971a8dfd5171ec22e1928cf455fb4317013b05b0915ff927982
+        ensure_downloaded_check_sha256 \
+            http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz \
+            81dc137bc8b7b3962e527cafb1a719342c34eb07d568dc61c7766f9a9bcdee62
+        ensure_downloaded_check_sha256 \
+            http://pypi.python.org/packages/source/z/zc.buildout/zc.buildout-1.5.2.tar.gz \
+            0ac5a325d3ffbc5a988fb3ba87f4159d4769cc73e3331cb5234edc8839b6506b
+        popd
 
+        set +x
         echo "Creating upstart script for: lava"
         sudo sh -c "cat >/etc/init/lava.conf" <<LAVA_CONF
 author "Zygmunt Krynicki"
@@ -1434,6 +1281,21 @@ script
 end script
 LAVA_CONF
 
+        if [ \! -e /etc/apache2/mods-available/uwsgi.load ]; then
+            echo "Building uWSGI apache module..."
+            _tmpdir="$(mktemp -d)"
+
+            trap "rm -rf \"${_tmpdir}\"" EXIT
+            set -x
+            pushd $_tmpdir
+            tar -xzf $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz --strip-components=1
+            cd apache2
+            apxs2 -c mod_uwsgi.c
+            sudo apxs2 -i -a mod_uwsgi.c
+            popd
+            set +x
+        fi
+
         # Store setup version
         echo $LAVA_SETUP_REQUIRED_VERSION > $LAVA_PREFIX/.setup
         echo "Setup complete, you can now install LAVA"
@@ -1459,7 +1321,7 @@ _banner() {
 
 cmd_install() {
     export LAVA_INSTANCE=$1
-    export LAVA_BUNDLE=$2
+    export LAVA_REVNO=$2
 
     check_min_version
     _banner
@@ -1469,9 +1331,10 @@ cmd_install() {
         return
     fi
 
-    if [ -z "$LAVA_BUNDLE" ]; then
-        echo "You need to pass the name of the bundle to use as second argument"
-        return
+    if [ -z "$LAVA_REVNO" ]; then
+        echo -n "Determining revno to deploy... "
+        LAVA_REVNO="$(bzr revno $LAVA_MANIFEST_BRANCH)"
+        echo $LAVA_REVNO
     fi
 
     # Sanity checking, ensure that instance does not exist yet
@@ -1489,7 +1352,7 @@ cmd_install() {
 
 cmd_upgrade() {
     export LAVA_INSTANCE=$1
-    export LAVA_BUNDLE=$2
+    export LAVA_REVNO=$2
 
     check_min_version
     _banner
@@ -1499,9 +1362,12 @@ cmd_upgrade() {
         return
     fi
 
-    if [ -z "$LAVA_BUNDLE" ]; then
-        echo "You need to pass the name of the bundle to use as second argument"
-        return
+    _load_configuration "$LAVA_INSTANCE"
+
+    if [ -z "$LAVA_REVNO" ]; then
+        echo -n "Determining revno to deploy... "
+        LAVA_REVNO="$(bzr revno $LAVA_MANIFEST_BRANCH)"
+        echo $LAVA_REVNO
     fi
 
     # Sanity checking, ensure that instance exist
@@ -1510,9 +1376,58 @@ cmd_upgrade() {
         return
     fi
 
-    _load_configuration "$LAVA_INSTANCE"
-    install_app || die "Failed to upgrade application code"
-    install_config_app || die "Failed to run post-upgrade configuration"
+    _maybe_pre_convert_to_buildout
+    install_app
+    _maybe_post_convert_to_buildout
+    install_config_app
+}
+
+
+_maybe_pre_convert_to_buildout () {
+    if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/code ]; then
+        return
+    fi
+    if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/lib ]; then
+        echo "Instance appears to be neither pip based or buildout based."
+        echo "Cowardly refusing to proceed."
+        exit 1;
+    fi
+
+    echo "$LAVA_INSTANCE appears to be a pip based instance"
+    echo "This script can attempt to convert it, but this may "
+    echo "lose any custom packages you have installed unless you "
+    echo "already have a plan to cope with that."
+    echo
+    read -p "Proceed? (y/n) " RESPONSE
+
+    if [ "$RESPONSE" != 'y' ]; then
+        exit 1;
+    fi
+
+    set -xe
+    _save_config
+    install_buildout
+    bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
+    set +xe
+}
+
+
+_maybe_post_convert_to_buildout () {
+    local instpath=$LAVA_PREFIX/$LAVA_INSTANCE
+    set -xe
+    if [ ! -e $instpath/lib ]; then
+        return
+    fi
+    $instpath/bin/pip freeze > $instpath/last-pip-installed-versions.txt
+    rm -rf $instpath/{bin,lib,src,build,local}
+    rm $instpath/etc/lava-server/lava-server.wsgi
+    ln -s $instpath/code/current/bin $instpath
+    sed -i -e 's%lib/python2\../site-packages/lava_server%code/current/server_code%' \
+        $instpath/etc/lava-server/settings.conf
+    sed -i -e "s%home = $instpath%&/var/lib/bootstrap-venv%" \
+        -e "s%$instpath/etc/lava-server/lava-server\.wsgi%$instpath/bin/lava-server.wsgi%" \
+        $instpath/etc/lava-server/uwsgi.ini
+    set +xe
 }
 
 
@@ -1788,50 +1703,10 @@ cmd_manage() {
 
     set -x
     lava-server manage \
-        --instance-template=$LAVA_ROOT/instances/{instance}/etc/lava-server/{{filename}}.conf \
-        --instance=$LAVA_INSTANCE \
         "$@"
     set +x
 }
 
-
-cmd_bundle() {
-    LAVA_REQUIREMENT=${1:-requirements/requirements.txt}
-    LAVA_BUNDLE=${2:-lava.pybundle}
-    local step
-    for step in $LAVA_INSTALL_STEPS; do
-        defaults_$step
-    done
-    LAVA_FULL_REQUIREMENT=$(mktemp)
-    for step in $LAVA_INSTALL_STEPS; do
-        pkglist_$step >> "$LAVA_FULL_REQUIREMENT"
-    done
-    set -x
-    pip bundle "$LAVA_BUNDLE" $PIP_PROXY_OPTION --timeout=30 --use-mirrors --requirement="$LAVA_FULL_REQUIREMENT" || die "Failed to create bundle"
-    set +x
-    rm -f "$LAVA_FULL_REQUIREMENT"
-}
-
-cmd_preview () {
-    export LAVA_INSTANCE=$1
-    export LAVA_BUNDLE=$2
-
-    check_min_version
-
-    local compare_manifests="$(dirname $(readlink -f "$0"))/_compare_manifests.py"
-
-    _bundle="$(readlink -f $LAVA_BUNDLE)"
-    _tmpdir="$(mktemp -d)"
-
-    trap "rm -rf \"${_tmpdir}\"" EXIT
-
-    cd "${_tmpdir}"
-
-    unzip -qc "${_bundle}" pip-manifest.txt | grep -v '^#' | tr '[A-Z]' '[a-z]' | sort > bundle-versions.txt
-    $LAVA_PREFIX/$LAVA_INSTANCE/bin/pip freeze | tr '[A-Z]' '[a-z]' | sort > installed-versions.txt
-
-    "${compare_manifests}" installed-versions.txt bundle-versions.txt
-}
 
 is_vhost(){
     export LAVA_INSTANCE=$1
