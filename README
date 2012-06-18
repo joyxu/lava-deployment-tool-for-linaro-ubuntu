@@ -318,10 +318,18 @@ drop the branch or a symlink to the branch in
 buildout.  For example::
 
   $ bzr branch lp:lava-scheduler ~/src/my-scheduler-branch
-  $ cd /srv/lava/instances/$instances/code/current
+  $ cd /srv/lava/instances/$instance/code/current
   $ ln -s ~/src/my-scheduler-branch local/ # The name of the symlink doesn't matter;
                                            # buildout looks at the setup.py
   $ ./bin/buildout
+
+Non-production instances contain some scripts that can be useful for this::
+
+  $ bzr branch lp:lava-scheduler ~/src/my-scheduler-branch
+  $ . /srv/lava/instances/testinstance/bin/activate
+  $ lava-develop-branch ~/src/my-scheduler-branch
+  ... hack ...
+  $ lava-undevelop-branch my-scheduler-branch
 
 Limited Deployments
 -------------------
