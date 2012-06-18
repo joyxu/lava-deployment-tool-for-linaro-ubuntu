@@ -329,7 +329,7 @@ Non-production instances contain some scripts that can be useful for this::
   $ . /srv/lava/instances/testinstance/bin/activate
   $ lava-develop-branch ~/src/my-scheduler-branch
   ... hack ...
-  $ lava-undevelop-branch my-scheduler-branch
+  $ lava-undevelop-branch ~/src/my-scheduler-branch
 
 Limited Deployments
 -------------------
