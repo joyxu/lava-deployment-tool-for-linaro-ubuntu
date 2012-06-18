@@ -323,13 +323,18 @@ buildout.  For example::
                                            # buildout looks at the setup.py
   $ ./bin/buildout
 
-Non-production instances contain some scripts that can be useful for this::
+Non-production instances contain some scripts that can help create and
+remove symlinks::
 
   $ bzr branch lp:lava-scheduler ~/src/my-scheduler-branch
   $ . /srv/lava/instances/testinstance/bin/activate
-  $ lava-develop-branch ~/src/my-scheduler-branch
+  $ lava-develop-local ~/src/my-scheduler-branch
+  Determining egg name... lava-scheduler
+  + ln -sfT ~/src/my-scheduler-branch /srv/lava/instances/testinstance/code/current/local/lava-scheduler
+  ...
   ... hack ...
-  $ lava-undevelop-branch ~/src/my-scheduler-branch
+  $ lava-undevelop-local ~/src/my-scheduler-branch
+  removed /srv/lava/instances/testinstance/code/current/local/lava-scheduler
 
 Limited Deployments
 -------------------
