@@ -1362,6 +1362,8 @@ cmd_upgrade() {
         return
     fi
 
+    _load_configuration "$LAVA_INSTANCE"
+
     if [ -z "$LAVA_REVNO" ]; then
         echo -n "Determining revno to deploy... "
         LAVA_REVNO="$(bzr revno $LAVA_MANIFEST_BRANCH)"
@@ -1374,7 +1376,6 @@ cmd_upgrade() {
         return
     fi
 
-    _load_configuration "$LAVA_INSTANCE"
     _maybe_pre_convert_to_buildout
     install_app
     _maybe_post_convert_to_buildout
