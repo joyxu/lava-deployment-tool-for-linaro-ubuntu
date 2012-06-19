@@ -45,11 +45,15 @@ mkdir "${SCRATCH_DIR}/src"
 
 while read line
 do
-    bzr branch --stacked "lp:$line" "${SCRATCH_DIR}/src/$line"
-    pushd "${SCRATCH_DIR}/src/$line"
-    python setup.py sdist
-    echo $(readlink -f dist/*) >> "${REQS}"
-    popd
+    if echo "${line}" | grep -q '^lava'; then
+        bzr branch --stacked "lp:$line" "${SCRATCH_DIR}/src/$line"
+        pushd "${SCRATCH_DIR}/src/$line"
+        python setup.py sdist
+        echo $(readlink -f dist/*) >> "${REQS}"
+        popd
+    else
+        echo "${line}" >>  "${REQS}"
+    fi
 done < "${SOURCE_REQUIREMENTS}"
 
 "${LDT}" bundle "${REQS}" "${BUNDLE}"
