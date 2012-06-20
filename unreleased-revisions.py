@@ -204,6 +204,8 @@ def make_html(components, instances):
                 td(u'\N{EM DASH}', class_='version')
             elif ver == component.last_release:
                 td(ver, class_='version')
+            elif ver not in component.release2revno:
+                td(tags.span(ver, class_='highlight'), class_='version')
             else:
                 id_ = get_id()
                 td(
