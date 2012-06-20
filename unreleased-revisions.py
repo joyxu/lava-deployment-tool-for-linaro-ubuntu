@@ -68,6 +68,7 @@ def create_components_from_branches(branches=None):
             component.release2revno = release2revno
             component.revno2release = revno2release
             revno, revid = branch.last_revision_info()
+            component.tip_revno = revno
             mainline_revs = []
             unreleased_revs = []
             while True:
@@ -143,15 +144,19 @@ DOCTYPE = '''\
         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 '''
 
-def format_revlist(revlist):
-    revs = tags.table()
+def format_revlist(revlist, name=None):
+    table = tags.table()
+    if name:
+        table(tags.thead(tags.tr(tags.th(name, colspan="2"))))
+    revs = tags.tbody()
+    table(revs)
     for rev, revno in revlist:
         r = tags.tr()
         r(tags.td(str(revno)))
         r(tags.td(rev.message.splitlines()[0][:100],
                   style="text-align: left"))
         revs(r)
-    return revs
+    return table
 
 _id = 0
 def get_id():
@@ -180,16 +185,19 @@ def make_html(components, instances):
             td(
                 tags.a(str(unreleased_count), href='#', class_='highlight'),
                 class_='version clickable', id=id_)
+            sub_name = 'revs between %s (r%s) and tip (r%s)' % (
+                component.last_release, component.released_revno,
+                component.tip_revno)
             extra_rows.append(
                 tags.tr(
                     tags.td(
-                        format_revlist(component.unreleased_revisions),
+                        format_revlist(component.unreleased_revisions, name=sub_name),
                         colspan=str(3 + len(instances))),
                     class_='hidden',
                     id="show-" + id_))
         else:
             td(str(unreleased_count), class_='version')
-        td(component.last_release, ' ', str(component.released_revno), class_='version')
+        td(component.last_release, class_='version')
         for instance_name, instance in sorted(instances.items()):
             ver = instance.get(name)
             if ver is None:
@@ -209,10 +217,12 @@ def make_html(components, instances):
                 for rev, revno in component.mainline_revs:
                     if revno_low < revno < component.released_revno:
                         revlist.append((rev, revno))
+                sub_name = 'revs between %s (r%s) and %s (r%s)' % (
+                    ver, revno_low, component.last_release, component.released_revno)
                 extra_rows.append(
                     tags.tr(
                         tags.td(
-                            format_revlist(revlist),
+                            format_revlist(revlist, sub_name),
                             colspan=str(3 + len(instances))),
                         class_='hidden',
                         id="show-" + id_))
