@@ -50,9 +50,9 @@ def create_components_from_branches(branches=None):
             os.path.join('/srv/lava/branches', branch_name))
         branch.lock_read()
         try:
-            tags = branch.tags.get_tag_dict()
+            branch_tags = branch.tags.get_tag_dict()
             released_revnos = []
-            for tag, revid in tags.iteritems():
+            for tag, revid in branch_tags.iteritems():
                 if tag.startswith('release-'):
                     try:
                         revno = branch.revision_id_to_dotted_revno(revid)
@@ -79,9 +79,8 @@ def create_components_from_branches(branches=None):
 
     return components
 
-LAVA_INSTANCES =  '/srv/lava/instances'
-if __name__ == '__main__':
-    components = create_components_from_branches()
+
+def load_instances():
     instances = {}
     for instance_name in os.listdir(LAVA_INSTANCES):
         manifest_path = os.path.join(
@@ -89,6 +88,10 @@ if __name__ == '__main__':
         if not os.path.exists(manifest_path):
             continue
         instances[instance_name] = load_manifest(manifest_path)
+    return instances
+
+
+def make_html(components, instances):
     table = tags.table()
     heading_row = tags.tr()
     for heading in  'component', 'unreleased', 'latest release':
@@ -106,4 +109,22 @@ if __name__ == '__main__':
 ##        for rev, revno in component.unreleased_revisions:
 ##            print ' ', revno[0], rev.message.splitlines()[0][:100]
         table(row)
-    print flatten(table)
+    html = tags.html(
+        tags.head(
+            tags.title("Deployment report"),
+            ),
+        tags.body(
+            tags.h1("Deployment report"),
+            table,
+            ),
+        )
+    return flatten(html)
+
+
+LAVA_INSTANCES =  '/srv/lava/instances'
+
+
+if __name__ == '__main__':
+    components = create_components_from_branches()
+    instances = load_instances()
+    print make_html(components, instances)
