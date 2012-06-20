@@ -3,7 +3,7 @@
 import bzrlib.branch
 import bzrlib.errors
 
-from twisted.web.template import flattenString, tags
+from twisted.web.template import CDATA, flattenString, tags
 
 import os
 import sys
@@ -98,7 +98,25 @@ css = '''
 .highlight {
   font-weight: bold;
 }
+.hidden {
+  display: none;
+}
+'''
 
+js = '''
+$(document).ready(function () {
+  $("a.highlight").click(
+    function (e) {
+      $(this).closest("td").find(".hidden").toggle();
+      console.log($(this).closest("td").find(".hidden"));
+    });
+});
+'''
+
+DOCTYPE = '''\
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 '''
 
 def make_html(components, instances):
@@ -116,7 +134,10 @@ def make_html(components, instances):
         td(name)
         unreleased_count = len(component.unreleased_revisions)
         if unreleased_count:
-            td(tags.a(str(unreleased_count), href='#'), class_='version highlight')
+            content = (
+                tags.a(str(unreleased_count), href='#', class_='highlight'),
+                tags.span(tags.br(), "xxx", class_='hidden'))
+            td(content, class_='version')
         else:
             td(str(unreleased_count), class_='version')
         td(component.last_release, class_='version')
@@ -134,8 +155,13 @@ def make_html(components, instances):
     html = tags.html(
         tags.head(
             tags.title("Deployment report"),
-            tags.meta(
-                content="text/html; charset=utf-8", **{'http-equiv': "Content-Type"}),
+            tags.script(
+                src='https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js',
+                type='text/javascript'),
+            tags.script(
+                src='https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js',
+                type='text/javascript'),
+            tags.script(CDATA(js), type='text/javascript'),
             tags.style(css, type="text/css"),
             ),
         tags.body(
@@ -143,7 +169,8 @@ def make_html(components, instances):
             table,
             ),
         )
-    return flatten(html)
+    html(xmlns="http://www.w3.org/1999/xhtml")
+    return DOCTYPE + flatten(html)
 
 
 LAVA_INSTANCES =  '/srv/lava/instances'
