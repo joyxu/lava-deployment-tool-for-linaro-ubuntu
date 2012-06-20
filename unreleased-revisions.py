@@ -1,8 +1,20 @@
 #!/usr/bin/python
+
 import bzrlib.branch
 import bzrlib.errors
+
+from twisted.web.template import flattenString, tags
+
 import os
 import sys
+
+
+def flatten(t):
+    r =[]
+    def _(result):
+        r.append(result)
+    flattenString(None, t).addCallback(_)
+    return r[0]
 
 
 class Component(object):
@@ -77,14 +89,21 @@ if __name__ == '__main__':
         if not os.path.exists(manifest_path):
             continue
         instances[instance_name] = load_manifest(manifest_path)
-    print 'component', 'unreleased', 'latest release',
+    table = tags.table()
+    heading_row = tags.tr()
+    for heading in  'component', 'unreleased', 'latest release':
+        heading_row(tags.th(heading))
     for instance_name in sorted(instances):
-        print instance_name,
-    print
+        heading_row(tags.th(instance_name))
+    table(heading_row)
     for name, component in sorted(components.items()):
-        print name, len(component.unreleased_revisions), component.last_release,
+        row = tags.tr()
+        row(tags.td(name))
+        row(tags.td(str(len(component.unreleased_revisions))))
+        row(tags.td(component.last_release))
         for instance_name, instance in sorted(instances.items()):
-            print instance.get(name, 'xx'),
-        print
-#        for rev, revno in component.unreleased_revisions:
-#            print ' ', revno[0], rev.message.splitlines()[0][:100]
+            row(tags.td(instance.get(name, 'xx')))
+##        for rev, revno in component.unreleased_revisions:
+##            print ' ', revno[0], rev.message.splitlines()[0][:100]
+        table(row)
+    print flatten(table)
