@@ -104,16 +104,18 @@ td.version {
 .hidden {
   display: none;
 }
-table {
+table.main {
   border-collapse: collapse;
-  text-align: left;
+  width: 80ex;
 }
-table th {
+table.main > thead > tr > th {
   padding: 10px 8px;
+  border:  1px solid #ccc;
   border-bottom: 2px solid black;
 }
-table td {
-  padding: 9px 8px 0px 8px;
+table.main > tbody > tr > td {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
 }
 '''
 
@@ -121,7 +123,7 @@ js = '''
 $(document).ready(function () {
   $("td.clickable").click(
     function (e) {
-      $(this).find(".hidden").toggle("slide", { direction: "up" });
+      $("#show-" + $(this).attr("id")).toggle();
     });
 });
 '''
@@ -133,7 +135,7 @@ DOCTYPE = '''\
 '''
 
 def format_revlist(revlist):
-    revs = tags.table(class_='hidden')
+    revs = tags.table()
     for rev, revno in revlist:
         r = tags.tr()
         r(tags.td(str(revno[0])))
@@ -142,8 +144,14 @@ def format_revlist(revlist):
         revs(r)
     return revs
 
+_id = 0
+def get_id():
+    global _id
+    _id += 1
+    return 'id' + str(_id)
+
 def make_html(components, instances):
-    table = tags.table()
+    table = tags.table(class_='main')
     heading_row = tags.tr()
     for heading in  'component', 'unreleased', 'latest release':
         heading_row(tags.th(heading))
@@ -153,15 +161,23 @@ def make_html(components, instances):
     tbody = tags.tbody()
     for name, component in sorted(components.items()):
         row = tags.tr()
+        extra_rows = []
         def td(*args, **kwargs):
             row(tags.td(*args, **kwargs))
         td(name)
         unreleased_count = len(component.unreleased_revisions)
         if unreleased_count:
+            id_ = get_id()
             content = (
-                tags.a(str(unreleased_count), href='#', class_='highlight'),
-                format_revlist(component.unreleased_revisions))
-            td(content, class_='version clickable')
+                tags.a(str(unreleased_count), href='#', class_='highlight'),)
+            td(content, class_='version clickable', id=id_)
+            extra_rows.append(
+                tags.tr(
+                    tags.td(
+                        format_revlist(component.unreleased_revisions),
+                        colspan=str(3 + len(instances))),
+                    class_='hidden',
+                    id="show-" + id_))
         else:
             td(str(unreleased_count), class_='version')
         td(component.last_release, class_='version')
@@ -173,7 +189,7 @@ def make_html(components, instances):
                 td(ver, class_='version')
             else:
                 td(tags.a(ver, href='#'), class_='version highlight')
-        tbody(row)
+        tbody(row, *extra_rows)
     table(tbody)
     html = tags.html(
         tags.head(
@@ -185,7 +201,7 @@ def make_html(components, instances):
                 src='https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js',
                 type='text/javascript'),
             tags.script(CDATA(js), type='text/javascript'),
-            tags.style(css, type="text/css"),
+            tags.style(CDATA(css), type="text/css"),
             ),
         tags.body(
             tags.h1("Deployment report"),
