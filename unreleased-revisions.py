@@ -19,7 +19,8 @@ def load_manifest(fname):
     for line in open(fname):
         line = line.strip()
         if line.startswith('#'):
-            package, version = line.split('==')
+            continue
+        package, version = line.split('==')
         d[package.lower().strip()] = version.strip()
     return d
 
@@ -66,10 +67,24 @@ def create_components_from_branches(branches=None):
 
     return components
 
-
+LAVA_INSTANCES =  '/srv/lava/instances'
 if __name__ == '__main__':
     components = create_components_from_branches()
+    instances = {}
+    for instance_name in os.listdir(LAVA_INSTANCES):
+        manifest_path = os.path.join(
+                LAVA_INSTANCES, instance_name, 'code/current/manifest.txt')
+        if not os.path.exists(manifest_path):
+            continue
+        instances[instance_name] = load_manifest(manifest_path)
+    print 'component', 'unreleased', 'latest release',
+    for instance_name in sorted(instances):
+        print instance_name,
+    print
     for name, component in sorted(components.items()):
-        print name, component.last_release, len(component.unreleased_revisions)
-        for rev, revno in component.unreleased_revisions:
-            print ' ', revno[0], rev.message.splitlines()[0][:100]
+        print name, len(component.unreleased_revisions), component.last_release,
+        for instance_name, instance in sorted(instances.items()):
+            print instance.get(name, 'xx'),
+        print
+#        for rev, revno in component.unreleased_revisions:
+#            print ' ', revno[0], rev.message.splitlines()[0][:100]
