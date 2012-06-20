@@ -92,7 +92,10 @@ def load_instances():
 
 
 css = '''
-.version {
+body {
+  font-family: "Ubuntu", "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
+}
+td.version {
   text-align: center;
 }
 .highlight {
@@ -101,14 +104,24 @@ css = '''
 .hidden {
   display: none;
 }
+table {
+  border-collapse: collapse;
+  text-align: left;
+}
+table th {
+  padding: 10px 8px;
+  border-bottom: 2px solid black;
+}
+table td {
+  padding: 9px 8px 0px 8px;
+}
 '''
 
 js = '''
 $(document).ready(function () {
-  $("a.highlight").click(
+  $("td.clickable").click(
     function (e) {
-      $(this).closest("td").find(".hidden").toggle();
-      console.log($(this).closest("td").find(".hidden"));
+      $(this).find(".hidden").toggle("slide", { direction: "up" });
     });
 });
 '''
@@ -119,6 +132,16 @@ DOCTYPE = '''\
         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 '''
 
+def format_revlist(revlist):
+    revs = tags.table(class_='hidden')
+    for rev, revno in revlist:
+        r = tags.tr()
+        r(tags.td(str(revno[0])))
+        r(tags.td(rev.message.splitlines()[0][:100],
+                  style="text-align: left"))
+        revs(r)
+    return revs
+
 def make_html(components, instances):
     table = tags.table()
     heading_row = tags.tr()
@@ -126,7 +149,8 @@ def make_html(components, instances):
         heading_row(tags.th(heading))
     for instance_name in sorted(instances):
         heading_row(tags.th(instance_name))
-    table(heading_row)
+    table(tags.thead(heading_row))
+    tbody = tags.tbody()
     for name, component in sorted(components.items()):
         row = tags.tr()
         def td(*args, **kwargs):
@@ -136,8 +160,8 @@ def make_html(components, instances):
         if unreleased_count:
             content = (
                 tags.a(str(unreleased_count), href='#', class_='highlight'),
-                tags.span(tags.br(), "xxx", class_='hidden'))
-            td(content, class_='version')
+                format_revlist(component.unreleased_revisions))
+            td(content, class_='version clickable')
         else:
             td(str(unreleased_count), class_='version')
         td(component.last_release, class_='version')
@@ -149,9 +173,8 @@ def make_html(components, instances):
                 td(ver, class_='version')
             else:
                 td(tags.a(ver, href='#'), class_='version highlight')
-##        for rev, revno in component.unreleased_revisions:
-##            print ' ', revno[0], rev.message.splitlines()[0][:100]
-        table(row)
+        tbody(row)
+    table(tbody)
     html = tags.html(
         tags.head(
             tags.title("Deployment report"),
