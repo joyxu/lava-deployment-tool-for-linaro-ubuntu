@@ -95,6 +95,9 @@ css = '''
 .version {
   text-align: center;
 }
+.highlight {
+  font-weight: bold;
+}
 
 '''
 
@@ -111,10 +114,20 @@ def make_html(components, instances):
         def td(*args, **kwargs):
             row(tags.td(*args, **kwargs))
         td(name)
-        td(str(len(component.unreleased_revisions)), class_='version')
+        unreleased_count = len(component.unreleased_revisions)
+        if unreleased_count:
+            td(tags.a(str(unreleased_count), href='#'), class_='version highlight')
+        else:
+            td(str(unreleased_count), class_='version')
         td(component.last_release, class_='version')
         for instance_name, instance in sorted(instances.items()):
-            td(instance.get(name, u'\N{EM DASH}'), class_='version')
+            ver = instance.get(name)
+            if ver is None:
+                td(u'\N{EM DASH}', class_='version')
+            elif ver == component.last_release:
+                td(ver, class_='version')
+            else:
+                td(tags.a(ver, href='#'), class_='version highlight')
 ##        for rev, revno in component.unreleased_revisions:
 ##            print ' ', revno[0], rev.message.splitlines()[0][:100]
         table(row)
