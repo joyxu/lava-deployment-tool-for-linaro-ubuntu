@@ -91,6 +91,13 @@ def load_instances():
     return instances
 
 
+css = '''
+.version {
+  text-align: center;
+}
+
+'''
+
 def make_html(components, instances):
     table = tags.table()
     heading_row = tags.tr()
@@ -101,17 +108,22 @@ def make_html(components, instances):
     table(heading_row)
     for name, component in sorted(components.items()):
         row = tags.tr()
-        row(tags.td(name))
-        row(tags.td(str(len(component.unreleased_revisions))))
-        row(tags.td(component.last_release))
+        def td(*args, **kwargs):
+            row(tags.td(*args, **kwargs))
+        td(name)
+        td(str(len(component.unreleased_revisions)), class_='version')
+        td(component.last_release, class_='version')
         for instance_name, instance in sorted(instances.items()):
-            row(tags.td(instance.get(name, 'xx')))
+            td(instance.get(name, u'\N{EM DASH}'), class_='version')
 ##        for rev, revno in component.unreleased_revisions:
 ##            print ' ', revno[0], rev.message.splitlines()[0][:100]
         table(row)
     html = tags.html(
         tags.head(
             tags.title("Deployment report"),
+            tags.meta(
+                content="text/html; charset=utf-8", **{'http-equiv': "Content-Type"}),
+            tags.style(css, type="text/css"),
             ),
         tags.body(
             tags.h1("Deployment report"),
