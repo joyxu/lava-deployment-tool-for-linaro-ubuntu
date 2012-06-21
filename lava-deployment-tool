@@ -899,9 +899,6 @@ cmd_setup() {
 
         set -xe
 
-        echo "Updating apt cache..."
-        sudo apt-get update
-
 	echo "Add Linaro tools ppa"
 	sudo apt-get install --yes python-software-properties
 	sudo add-apt-repository --yes ppa:linaro-maintainers/tools
