@@ -1129,7 +1129,8 @@ kill signal SIGTERM
 # Run celery daemon 
 script
 . $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
-exec sudo -u \$LAVA_INSTANCE VIRTUAL_ENV=\$VIRTUAL_ENV PATH=\$PATH $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celeryd --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celeryd.log --loglevel=info --events
+. $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+exec su -s /bin/sh -c 'exec "\$0" "\$@"' \$LAVA_SYS_USER -- $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celeryd --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celeryd.log --loglevel=info --events
 end script
 
 LAVA_CONF
@@ -1176,7 +1177,8 @@ end script
 # Run celery beat scheduler
 script
 . $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
-exec sudo -u \$LAVA_INSTANCE VIRTUAL_ENV=\$VIRTUAL_ENV PATH=\$PATH $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerybeat --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerybeat.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerybeat.pid --schedule=$LAVA_PREFIX/\$LAVA_INSTANCE/var/lib/lava-celery/celerybeat-schedule
+. $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+exec su -s /bin/sh -c 'exec "\$0" "\$@"' \$LAVA_SYS_USER -- $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerybeat --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerybeat.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerybeat.pid --schedule=$LAVA_PREFIX/\$LAVA_INSTANCE/var/lib/lava-celery/celerybeat-schedule
 end script
 LAVA_CONF
 
@@ -1222,7 +1224,8 @@ end script
 # Run celery camera
 script
 . $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
-exec sudo -u \$LAVA_INSTANCE VIRTUAL_ENV=\$VIRTUAL_ENV PATH=\$PATH $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerycam --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerycam.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerycam.pid
+. $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+exec su -s /bin/sh -c 'exec "\$0" "\$@"' \$LAVA_SYS_USER -- $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerycam --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerycam.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerycam.pid
 end script
 LAVA_CONF
 
