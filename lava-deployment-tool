@@ -684,7 +684,7 @@ SETTINGS_CONF
     # relative to the config file).
     local cfg="$(basename "${LAVA_BUILDOUT_CFG}")"
     if [ "${cfg}" != "${LAVA_BUILDOUT_CFG}" ]; then
-        ln -sfT "${LAVA_BUILDOUT_CFG}" "${cfg}"
+        ln -sfT "${LAVA_BUILDOUT_CFG}" "${code}/${cfg}"
     fi
     pushd $code
     ${venv}/bin/buildout -c "${cfg}"
