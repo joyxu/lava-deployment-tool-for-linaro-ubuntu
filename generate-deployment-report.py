@@ -22,17 +22,24 @@ class Component(object):
         self.name = name
         self.last_release = None
         self.tip_revno = None
+        self.tip_revid = None
         self.unreleased_revisions = None
 
 
 def load_manifest(fname):
     d = {}
+    from_line = None
     for line in open(fname):
         line = line.strip()
+        if line.startswith('# from '):
+            from_line = line[len('# from '):-1]
+            if from_line.startswith('EGG'):
+                from_line = None
         if line.startswith('#'):
             continue
         package, version = line.split('==')
-        d[package.lower().strip()] = version.strip()
+        d[package.lower().strip()] = (version.strip(), from_line)
+        from_line = None
     return d
 
 
@@ -69,6 +76,7 @@ def create_components_from_branches(branches=None):
             component.revno2release = revno2release
             revno, revid = branch.last_revision_info()
             component.tip_revno = revno
+            component.tip_revid = revid
             mainline_revs = []
             unreleased_revs = []
             while True:
@@ -111,12 +119,24 @@ td.version {
 .highlight {
   font-weight: bold;
 }
+.clickable {
+  cursor: pointer;
+}
 .hidden {
   display: none;
 }
 table.main {
   border-collapse: collapse;
   width: 80ex;
+}
+table.inner {
+  width: 100%;
+}
+table.inner > tbody > tr > td {
+  width: 4ex;
+}
+table.inner > tbody > tr > td+td {
+  width: auto;
 }
 table.main > thead > tr > th {
   padding: 10px 8px;
@@ -133,6 +153,7 @@ js = '''
 $(document).ready(function () {
   $("td.clickable").click(
     function (e) {
+      e.preventDefault();
       $("#show-" + $(this).attr("id")).toggle();
     });
 });
@@ -145,7 +166,7 @@ DOCTYPE = '''\
 '''
 
 def format_revlist(revlist, name=None):
-    table = tags.table()
+    table = tags.table(class_='inner')
     if name:
         table(tags.thead(tags.tr(tags.th(name, colspan="2"))))
     revs = tags.tbody()
@@ -199,35 +220,71 @@ def make_html(components, instances):
             td(str(unreleased_count), class_='version')
         td(component.last_release, class_='version')
         for instance_name, instance in sorted(instances.items()):
-            ver = instance.get(name)
+            ver, location = instance.get(name, (None, None))
             if ver is None:
                 td(u'\N{EM DASH}', class_='version')
             elif ver == component.last_release:
                 td(ver, class_='version')
-            elif ver not in component.release2revno:
+            elif ver in component.release2revno:
                 td(tags.span(ver, class_='highlight'), class_='version')
-            else:
-                id_ = get_id()
-                td(
-                    tags.a(ver, href='#', class_='highlight'),
-                    class_='version clickable', id=id_)
-                if 'dev' in ver:
-                    revno_low = int(ver.split('dev')[1])
+            elif location:
+                try:
+                    branch = bzrlib.branch.Branch.open(location)
+                except bzrlib.errors.NoSuchBranch:
+                    td(tags.span(ver, class_='highlight'), class_='version')
                 else:
-                    revno_low = component.release2revno[ver]
-                revlist = []
-                for rev, revno in component.mainline_revs:
-                    if revno_low < revno < component.released_revno:
-                        revlist.append((rev, revno))
-                sub_name = 'revs between %s (r%s) and %s (r%s)' % (
-                    ver, revno_low, component.last_release, component.released_revno)
-                extra_rows.append(
-                    tags.tr(
-                        tags.td(
-                            format_revlist(revlist, sub_name),
-                            colspan=str(3 + len(instances))),
-                        class_='hidden',
-                        id="show-" + id_))
+                    branch.lock_read()
+                    try:
+                        revno, revid = branch.last_revision_info()
+                        mainline_revids = dict(
+                            (rev.revision_id, revno)
+                            for rev, revno in component.mainline_revs)
+                        in_branch_revs = []
+                        while revid not in mainline_revids:
+                            rev = branch.repository.get_revision(revid)
+                            if rev.message != 'post release bump':
+                                in_branch_revs.append((rev, revno))
+                            revno -= 1
+                            if not rev.parent_ids:
+                                break
+                            revid = rev.parent_ids[0]
+                        tables = []
+                        if in_branch_revs:
+                            tables.append(
+                                format_revlist(
+                                    in_branch_revs,
+                                    'in branch (with nick %s) but not tip' % branch.nick))
+                        in_trunk_revs = []
+                        lca_revno = revno
+                        for rev, revno in component.mainline_revs:
+                            if revno > lca_revno:
+                                in_trunk_revs.append((rev, revno))
+                        if in_trunk_revs:
+                            tables.append(
+                                format_revlist(
+                                    in_trunk_revs,
+                                    'in tip but not branch'))
+                        if tables:
+                            id_ = get_id()
+                            td(
+                                tags.a(ver, href='#', class_='highlight'),
+                                class_='version clickable', id=id_)
+                            extra_rows.append(
+                                tags.tr(
+                                    tags.td(
+                                        tables,
+                                        colspan=str(3 + len(instances))),
+                                    class_='hidden',
+                                    id="show-" + id_))
+                        else:
+                            if branch.last_revision() == component.tip_revno:
+                                td(ver, class_='highlight version')
+                            else:
+                                td(ver, class_='version')
+                    finally:
+                        branch.unlock()
+            else:
+                td(tags.span(ver, class_='highlight'), class_='version')
         tbody(row, *extra_rows)
     table(tbody)
     html = tags.html(
