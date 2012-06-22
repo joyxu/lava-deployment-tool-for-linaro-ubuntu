@@ -188,7 +188,7 @@ def get_id():
 def make_html(components, instances):
     table = tags.table(class_='main')
     heading_row = tags.tr()
-    for heading in  'component', 'unreleased', 'latest release':
+    for heading in  'component', 'tip revno', 'unreleased revisions', 'latest release':
         heading_row(tags.th(heading))
     for instance_name in sorted(instances):
         heading_row(tags.th(instance_name))
@@ -200,6 +200,7 @@ def make_html(components, instances):
         def td(*args, **kwargs):
             row(tags.td(*args, **kwargs))
         td(name)
+        td(str(component.tip_revno), class_='version')
         unreleased_count = len(component.unreleased_revisions)
         if unreleased_count:
             id_ = get_id()
@@ -213,7 +214,7 @@ def make_html(components, instances):
                 tags.tr(
                     tags.td(
                         format_revlist(component.unreleased_revisions, name=sub_name),
-                        colspan=str(3 + len(instances))),
+                        colspan=str(4 + len(instances))),
                     class_='hidden',
                     id="show-" + id_))
         else:
@@ -236,6 +237,7 @@ def make_html(components, instances):
                     branch.lock_read()
                     try:
                         revno, revid = branch.last_revision_info()
+                        ver = ver.split('dev')[0] + 'dev' + str(revno)
                         mainline_revids = dict(
                             (rev.revision_id, revno)
                             for rev, revno in component.mainline_revs)
@@ -273,7 +275,7 @@ def make_html(components, instances):
                                 tags.tr(
                                     tags.td(
                                         tables,
-                                        colspan=str(3 + len(instances))),
+                                        colspan=str(4 + len(instances))),
                                     class_='hidden',
                                     id="show-" + id_))
                         else:
