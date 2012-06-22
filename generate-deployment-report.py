@@ -196,6 +196,7 @@ def make_html(components, instances):
     tbody = tags.tbody()
     for name, component in sorted(components.items()):
         row = tags.tr()
+        revs_between_ids = {}
         extra_rows = []
         def td(*args, **kwargs):
             row(tags.td(*args, **kwargs))
@@ -227,7 +228,29 @@ def make_html(components, instances):
             elif ver == component.last_release:
                 td(ver, class_='version')
             elif ver in component.release2revno:
-                td(tags.span(ver, class_='highlight'), class_='version')
+                revno_low = component.release2revno[ver]
+                sub_name = 'revs between %s (r%s) and %s (r%s)' % (
+                    ver, revno_low,
+                    component.last_release, component.released_revno)
+                revlist = []
+                for rev, revno in component.mainline_revs:
+                    if revno_low < revno < component.released_revno:
+                        revlist.append((rev, revno))
+                if revlist:
+                    id_ = get_id()
+                    revs_between_ids[revno_low] = id_
+                    extra_rows.append(
+                        tags.tr(
+                            tags.td(
+                                format_revlist(revlist, name=sub_name),
+                                colspan=str(4 + len(instances))),
+                            class_='hidden',
+                            id="show-" + id_))
+                    td(
+                        tags.a(ver, href='#', class_='highlight'),
+                        class_='version clickable', id=id_)
+                else:
+                    td(tags.span(ver, class_='highlight'), class_='version')
             elif location:
                 try:
                     branch = bzrlib.branch.Branch.open(location)
@@ -236,6 +259,8 @@ def make_html(components, instances):
                 else:
                     branch.lock_read()
                     try:
+                        # This utterly half-assed version of bzr missing
+                        # doesn't take merges into account!
                         revno, revid = branch.last_revision_info()
                         ver = ver.split('dev')[0] + 'dev' + str(revno)
                         mainline_revids = dict(
