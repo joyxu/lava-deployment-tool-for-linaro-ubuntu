@@ -18,11 +18,11 @@ inst=/srv/lava/instances/$LAVA_INSTANCE
 
 # 1. stop instance
 
-sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
+sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
 
 # 2. restore db from production/latest
 
-"${ldt}" restore-db $LAVA_SNAPSHOT
+"${ldt}" restore-db $LAVA_INSTANCE $LAVA_SNAPSHOT
 
 # 3. run migrations
 
