@@ -5,8 +5,6 @@ set -eu
 ldt="$(dirname $(readlink -f $0))/lava-deployment-tool"
 inst=/srv/lava/instances/dev
 
-set -x
-
 # 1. stop instance
 
 #sudo stop lava-instance LAVA_INSTANCE=staging
@@ -22,21 +20,40 @@ set -x
 
 # 4. mark all running and submitted jobs as canceled.
 
-set +x
 . "${inst}/instance.conf"
 export PGPASSWORD="$LAVA_DB_PASSWORD"
 export PGUSER="$LAVA_DB_USER"
-set -x
 
 psql () {
+ echo '>' psql -h localhost -d "${LAVA_DB_NAME}" "$@"
  command psql -h localhost -d "${LAVA_DB_NAME}" "$@"
 }
 
-psql -c 'select count(*) from lava_scheduler_app_testjob'
+psql -c 'update lava_scheduler_app_testjob set status = 4 where status in (1, 2, 5)'
 
 # 5. set all boards to retired
+
+psql -c 'update lava_scheduler_app_device set current_job_id = null, status = 4'
+
 # 6. edit health jobs to submit to staging
-# 7. set panda24, beaglexm04, origen10 to online -- how to specify?
-#    (look at /srv/lava/instances/staging/etc/lava-dispatcher/devices ?)
+
+# sounds difficult :(
+
+# 7. set devices staging knows about to online
+
+where_clause=$(
+    ls $inst/etc/lava-dispatcher/devices |
+    sed -ne 's/^\([a-z0-9]\+\)\.conf$/\1/p' |
+python -c '
+import sys
+devices = list(sys.stdin)
+if not devices:
+    print "false"
+else:
+    print "hostname in (" + ",".join(["\x27" + d.strip() + "\x27" for d in devices]) + ")"')
+
+psql -c "update lava_scheduler_app_device set status = 1, health_status = 0 where $where_clause"
+
 # 8. start instance
 
+#sudo start lava-instance LAVA_INSTANCE=staging
