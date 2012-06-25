@@ -1,22 +1,33 @@
 #!/bin/bash
 
+# 1. stop instance
+# 2. restore db from production/latest
+# 3. run migrations
+# 4. mark all running and submitted jobs as canceled.
+# 5. set all boards to retired
+# 6. edit health jobs to submit to staging
+# 7. set devices staging knows about to online
+# 8. start instance
+
 set -eu
 
 ldt="$(dirname $(readlink -f $0))/lava-deployment-tool"
-inst=/srv/lava/instances/dev
+LAVA_INSTANCE="${LAVA_INSTANCE-staging}"
+LAVA_SNAPHOT="${LAVA_SNAPSHOT-production/latest}"
+inst=/srv/lava/instances/$LAVA_INSTANCE
 
 # 1. stop instance
 
-#sudo stop lava-instance LAVA_INSTANCE=staging
+sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
 
 # 2. restore db from production/latest
 
-#"${ldt}" restore-db production/latest
+"${ldt}" restore-db $LAVA_SNAPSHOT
 
 # 3. run migrations
 
-#"${inst}/bin/lava-server" manage syncdb --noinput
-#"${inst}/bin/lava-server" manage migrate --noinput
+"${inst}/bin/lava-server" manage syncdb --noinput
+"${inst}/bin/lava-server" manage migrate --noinput
 
 # 4. mark all running and submitted jobs as canceled.
 
@@ -37,7 +48,15 @@ psql -c 'update lava_scheduler_app_device set current_job_id = null, status = 4'
 
 # 6. edit health jobs to submit to staging
 
-# sounds difficult :(
+"${inst}/bin/py" -c '
+from django.db.models import Q
+from lava_scheduler_app.models import DeviceType
+
+for dt in DeviceType.objects.filter(~Q(health_check_job=u""), health_check_job__isnull=False):
+    dt.health_check_job = dt.health_check_job.replace(
+        "validation.linaro.org/lava-server/RPC2", "staging.validation.linaro.org/RPC2")
+    dt.save()
+'
 
 # 7. set devices staging knows about to online
 
@@ -56,4 +75,4 @@ psql -c "update lava_scheduler_app_device set status = 1, health_status = 0 wher
 
 # 8. start instance
 
-#sudo start lava-instance LAVA_INSTANCE=staging
+sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
