@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# 1. stop instance
+# 2. restore db from production/latest
+# 3. run migrations
+# 4. mark all running and submitted jobs as canceled.
+# 5. set all boards to retired
+# 6. edit health jobs to submit to staging
+# 7. set devices staging knows about to online
+# 8. update Site table
+# 9. start instance
+
+set -eu
+
+ldt="$(dirname $(readlink -f $0))/lava-deployment-tool"
+LAVA_INSTANCE="${LAVA_INSTANCE-staging}"
+LAVA_SNAPSHOT="${LAVA_SNAPSHOT-production/latest}"
+LAVA_HOSTNAME="${LAVA_HOSTNAME-staging.validation.linaro.org}"
+inst=/srv/lava/instances/$LAVA_INSTANCE
+
+# 1. stop instance
+
+sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
+
+# 2. restore db from production/latest
+
+echo RESTORE | "${ldt}" restore-db $LAVA_INSTANCE $LAVA_SNAPSHOT
+
+# 3. run migrations
+
+"${inst}/bin/lava-server" manage syncdb --noinput
+"${inst}/bin/lava-server" manage migrate --noinput
+
+# 4. mark all running and submitted jobs as canceled.
+
+. "${inst}/instance.conf"
+export PGPASSWORD="$LAVA_DB_PASSWORD"
+export PGUSER="$LAVA_DB_USER"
+
+psql () {
+ echo '>' psql -h localhost -d "${LAVA_DB_NAME}" "$@"
+ command psql -h localhost -d "${LAVA_DB_NAME}" "$@"
+}
+
+psql -c 'update lava_scheduler_app_testjob set status = 4 where status in (0, 1, 2, 5)'
+
+# 5. set all boards to retired
+
+psql -c 'update lava_scheduler_app_device set current_job_id = null, status = 4'
+
+# 6. edit health jobs to submit to staging
+
+"${inst}/bin/py" -c '
+from django.db.models import Q
+from lava_scheduler_app.models import DeviceType
+
+for dt in DeviceType.objects.filter(~Q(health_check_job=u""), health_check_job__isnull=False):
+    dt.health_check_job = dt.health_check_job.replace(
+        "validation.linaro.org/lava-server/RPC2", "'"${LAVA_HOSTNAME}"'/RPC2")
+    dt.save()
+'
+
+# 7. set devices staging knows about to online
+
+where_clause=$(
+    ls $inst/etc/lava-dispatcher/devices |
+    sed -ne 's/^\([a-z0-9]\+\)\.conf$/\1/p' |
+python -c '
+import sys
+devices = list(sys.stdin)
+if not devices:
+    print "false"
+else:
+    print "hostname in (" + ",".join(["\x27" + d.strip() + "\x27" for d in devices]) + ")"')
+
+psql -c "update lava_scheduler_app_device set status = 1, health_status = 0 where $where_clause"
+
+# 8. update Site table
+
+psql -c "update django_site set domain = '${LAVA_HOSTNAME}', name = '${LAVA_HOSTNAME}'"
+
+# 9. start instance
+
+sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE

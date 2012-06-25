@@ -1548,6 +1548,7 @@ _restore_db_from_dump () {
 }
 
 cmd_restore-db () {
+    set -e
     LAVA_INSTANCE=${1}
     local SNAPSHOT_ID=${2}
     SNAPSHOT="$(_find_snapshot $LAVA_INSTANCE $SNAPSHOT_ID)"
@@ -1561,24 +1562,25 @@ cmd_restore-db () {
         exit 1
     fi
 
+    if [ status lava-instance LAVA_INSTANCE=$LAVA_INSTANCE > /dev/null 2>&1 ]; then
+        echo "LAVA instance $LAVA_INSTANCE appears to be running"
+        exit 1
+    fi
+
     echo "Are you sure you want to restore the database of $LAVA_INSTANCE from"
     echo "$SNAPSHOT_ID?  This will DESTROY the existing database of $LAVA_INSTANCE"
     echo
     read -p "Type RESTORE to continue: " RESPONSE
     test "$RESPONSE" = 'RESTORE' || return
 
-    # Stop the instance
-    sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
-
     _restore_db_from_dump "$db_snapshot"
-
-    sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
 
     echo "Done"
 
 }
 
 cmd_restore() {
+    set -e
     LAVA_INSTANCE=${1}
     local SNAPSHOT_ID=${2}
     SNAPSHOT="$(_find_snapshot $LAVA_INSTANCE $SNAPSHOT_ID)"
