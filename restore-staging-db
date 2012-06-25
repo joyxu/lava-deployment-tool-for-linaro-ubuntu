@@ -24,7 +24,7 @@ sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
 
 # 2. restore db from production/latest
 
-#echo RESTORE | "${ldt}" restore-db $LAVA_INSTANCE $LAVA_SNAPSHOT
+echo RESTORE | "${ldt}" restore-db $LAVA_INSTANCE $LAVA_SNAPSHOT
 
 # 3. run migrations
 
