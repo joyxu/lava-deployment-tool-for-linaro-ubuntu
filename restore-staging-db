@@ -14,7 +14,7 @@ set -eu
 
 ldt="$(dirname $(readlink -f $0))/lava-deployment-tool"
 LAVA_INSTANCE="${LAVA_INSTANCE-staging}"
-LAVA_SNAPHOT="${LAVA_SNAPSHOT-production/latest}"
+LAVA_SNAPSHOT="${LAVA_SNAPSHOT-production/latest}"
 LAVA_HOSTNAME="${LAVA_HOSTNAME-staging.validation.linaro.org}"
 inst=/srv/lava/instances/$LAVA_INSTANCE
 
