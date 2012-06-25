@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -eu
+
+ldt="$(dirname $(readlink -f $0))/lava-deployment-tool"
+inst=/srv/lava/instances/dev
+
+set -x
+
+# 1. stop instance
+
+#sudo stop lava-instance LAVA_INSTANCE=staging
+
+# 2. restore db from production/latest
+
+#"${ldt}" restore-db production/latest
+
+# 3. run migrations
+
+#"${inst}/bin/lava-server" manage syncdb --noinput
+#"${inst}/bin/lava-server" manage migrate --noinput
+
+# 4. mark all running and submitted jobs as canceled.
+
+set +x
+. "${inst}/instance.conf"
+export PGPASSWORD="$LAVA_DB_PASSWORD"
+export PGUSER="$LAVA_DB_USER"
+set -x
+
+psql () {
+ command psql -h localhost -d "${LAVA_DB_NAME}" "$@"
+}
+
+psql -c 'select count(*) from lava_scheduler_app_testjob'
+
+# 5. set all boards to retired
+# 6. edit health jobs to submit to staging
+# 7. set panda24, beaglexm04, origen10 to online -- how to specify?
+#    (look at /srv/lava/instances/staging/etc/lava-dispatcher/devices ?)
+# 8. start instance
+
