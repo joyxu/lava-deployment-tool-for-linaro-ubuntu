@@ -1294,7 +1294,7 @@ LAVA_CONF
             tar -xzf $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz --strip-components=1
             cd apache2
             apxs2 -c mod_uwsgi.c
-            sudo apxs2 -i -a mod_uwsgi.c
+            sudo apxs2 -i -a mod_uwsgi.la
             popd
             set +x
         fi
