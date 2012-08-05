@@ -70,8 +70,11 @@ def create_components_from_branches(branches=None):
                             continue
                         revno2release[revno[0]] = tag[len('release-'):]
                         release2revno[tag[len('release-'):]] = revno[0]
-            component.released_revno = max(revno2release)
-            component.last_release = revno2release[max(revno2release)]
+            if revno2release:
+                component.released_revno = max(revno2release)
+                component.last_release = revno2release[max(revno2release)]
+            else:
+                component.released_revno = None
             component.release2revno = release2revno
             component.revno2release = revno2release
             revno, revid = branch.last_revision_info()
@@ -82,7 +85,7 @@ def create_components_from_branches(branches=None):
             while True:
                 rev = branch.repository.get_revision(revid)
                 if rev.message != 'post release bump':
-                    if revno > component.released_revno:
+                    if component.released_revno and revno > component.released_revno:
                         unreleased_revs.append((rev, revno))
                     mainline_revs.append((rev, revno))
                 if not rev.parent_ids:
@@ -218,9 +221,14 @@ def make_html(components, instances):
                         colspan=str(4 + len(instances))),
                     class_='hidden',
                     id="show-" + id_))
+        elif not component.last_release:
+            td(u'\N{EM DASH}', class_='version')
         else:
             td(str(unreleased_count), class_='version')
-        td(component.last_release, class_='version')
+        if component.last_release:
+            td(component.last_release, class_='version')
+        else:
+            td(u'???', class_='version')
         for instance_name, instance in sorted(instances.items()):
             ver, location = instance.get(name, (None, None))
             if ver is None:
