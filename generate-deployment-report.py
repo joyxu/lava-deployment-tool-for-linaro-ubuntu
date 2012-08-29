@@ -84,7 +84,7 @@ def create_components_from_branches(branches=None):
             unreleased_revs = []
             while True:
                 rev = branch.repository.get_revision(revid)
-                if rev.message != 'post release bump':
+                if rev.message.strip() != 'post release bump':
                     if component.released_revno and revno > component.released_revno:
                         unreleased_revs.append((rev, revno))
                     mainline_revs.append((rev, revno))
