@@ -1125,105 +1125,12 @@ kill signal SIGTERM
 
 # Run celery daemon 
 script
-. $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
-. $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
-exec su -s /bin/sh -c 'exec "\$0" "\$@"' \$LAVA_SYS_USER -- $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celeryd --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celeryd.log --loglevel=info --events
+    . $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
+    . $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+    exec $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava celeryd >$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celeryd.log 2>&1
+
 end script
 
-LAVA_CONF
-
-        echo "Creating upstart script for: lava-instance-celerybeat"
-        sudo sh -c "cat >/etc/init/lava-instance-celerybeat.conf" <<LAVA_CONF
-author "Zygmunt Krynicki"
-description "LAVA Celery Scheduler"
-
-# This is an instance job, there are many possible workers
-# each with different instance variable.
-instance \$LAVA_INSTANCE
-
-# Stop and start along with the rest of the instance
-# start on starting lava-instance
-# stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
-# FIXME: upstart + virtualenv + pid tracking + sudo is broken, needs attention, celery is not part of this release
-
-# Respawn the worker if it got hurt
-respawn
-
-# Announce workers becoming online
-pre-start script
-    # Don't start unless the instance configuration file is present
-    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
-        stop
-    else
-        logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler starting..."
-    fi
-end script
-
-post-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler started"
-end script
-
-pre-stop script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler stopping..."
-end script
-
-post-stop script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery scheduler stopped"
-end script
-
-# Run celery beat scheduler
-script
-. $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
-. $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
-exec su -s /bin/sh -c 'exec "\$0" "\$@"' \$LAVA_SYS_USER -- $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerybeat --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerybeat.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerybeat.pid --schedule=$LAVA_PREFIX/\$LAVA_INSTANCE/var/lib/lava-celery/celerybeat-schedule
-end script
-LAVA_CONF
-
-        echo "Creating upstart script for: lava-instance-celerycam"
-        sudo sh -c "cat >/etc/init/lava-instance-celerycam.conf" <<LAVA_CONF
-author "Zygmunt Krynicki"
-description "LAVA Celery Camera (worker snapshot service)"
-
-# This is an instance job, there are many possible workers
-# each with different instance variable.
-instance \$LAVA_INSTANCE
-
-# Stop and start along with the rest of the instance
-# start on starting lava-instance
-# stop on stopping lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
-# FIXME: upstart + virtualenv + pid tracking + sudo is broken, needs attention, celery is not part of this release
-
-# Respawn the worker if it got hurt
-respawn
-
-# Announce workers becoming online
-pre-start script
-    # Don't start unless the instance configuration file is present
-    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
-        stop
-    else
-        logger "LAVA instance (\$LAVA_INSTANCE) celery cam starting..."
-    fi
-end script
-
-post-start script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery cam started"
-end script
-
-pre-stop script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery cam stopping..."
-end script
-
-post-stop script
-    logger "LAVA instance (\$LAVA_INSTANCE) celery cam stopped"
-end script
-
-# Run celery camera
-script
-. $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
-. $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
-exec su -s /bin/sh -c 'exec "\$0" "\$@"' \$LAVA_SYS_USER -- $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage celerycam --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-celerycam.log --loglevel=info --pidfile=$LAVA_PREFIX/\$LAVA_INSTANCE/run/lava-celerycam.pid
-end script
 LAVA_CONF
 
         echo "Creating upstart script for: lava-instance-scheduler"
