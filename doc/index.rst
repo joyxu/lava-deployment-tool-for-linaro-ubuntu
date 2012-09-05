@@ -9,8 +9,6 @@ deployment. For that it is likely we will turn to Juju_.
 
 .. _Juju: https://juju.ubuntu.com/
 
-.. contents::
-
 Quickstart
 ^^^^^^^^^^
 
