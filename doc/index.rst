@@ -1,0 +1,376 @@
+LAVA Deployment Tool
+====================
+
+LAVA Deployment Tool is meant to assist you setting up LAVA on your machine.
+The tool is suitable for both personal and more "production" installations that
+are expected to perform adequately with more concurrent users. This tool is
+not, however, designed for multi-machine installation, including cloud
+deployment. For that it is likely we will turn to Juju_.
+
+.. _Juju: https://juju.ubuntu.com/
+
+.. contents::
+
+Quickstart
+^^^^^^^^^^
+
+For the impatient, or those just looking for a cheat sheet but know what they
+are doing otherwise, here are the basic set of commands to get an instance::
+
+ $ ./lava-deployment-tool setup
+ $ ./lava-deployment-tool install testinstance
+ $ ./lava-deployment-tool manage testinstance createsuperuser
+ $ ./lava-deployment-tool manage testinstance runserver
+
+Assuming everything went well, you should be able to point a web
+browser at http://127.0.0.1:8000/, see the lava-server default page
+and sign-in.
+
+Software Requirements
+^^^^^^^^^^^^^^^^^^^^^
+
+We currently recommmend using Ubuntu 12.04.  This tool should work on
+Ubuntu versions 11.10 (Oneiric) and newer.
+
+If you'd like to help us with other distributions feel free to contact
+us at linaro-validation (at) lists (dot) linaro (dot) org.
+
+Hardware Requirements
+^^^^^^^^^^^^^^^^^^^^^
+
+A small LAVA instance can be deployed on any modest hardware. We
+recommend at least one 1GB of RAM for runtime activity (this is
+shared, on a single host, among the database server, the application
+server and the web server). For storage please reserve about 20GB for
+application data, especially if you wish to mirror current public LAVA
+instance used by Linaro.  LAVA uses append-only models so the storage
+requirements will grow at about several GB a year.
+
+Before installing
+^^^^^^^^^^^^^^^^^
+
+Before you can create your first LAVA instance (standalone, independent LAVA
+installation) you must install some shared infrastructure on your machine.
+Currently this is the Apache 2 web server, PostgreSQL database server, RabbitMQ
+messaging server, and Python (and a few python programs and libraries). Because
+this installation method is not using pre-built packages you will also need
+development headers and a working compiler to build some of the native (C)
+extensions for python.
+
+This step is largely automated. To perform it run this command::
+
+ $ ./lava-deployment-tool setup
+
+This step also prepares file-system places for LAVA. In particular it
+creates ``/srv/lava/`` where all LAVA instances are later stored.
+
+Creating an instance of LAVA
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An instance of LAVA is a self-contained installation of LAVA.  This
+means the code that makes up LAVA, configuration data, a Postgres
+database, and the log files and test result bundles produced by
+running tests.
+
+You can create multiple LAVA instances on a single machine, which is
+very valuable for testing and developing LAVA itself.
+
+The code part of an instance is described by a `buildout`_
+configuration file, which lives in a branch of the `lava-manifest`_
+project on Launchpad.  By default, lava-deployment-tool creates an
+instance that uses the buildout.cfg file from the most recent revision
+of the lp:lava-manifest branch.
+
+To create an instance, run::
+
+ $ ./lava-deployment-tool install NAME
+
+This will ask you a few questions and then create a fresh instance
+called NAME.
+
+You can override details about how to construct the instance:
+
+ 1. To override the branch to deploy from, set LAVA_MANIFEST_BRANCH in
+    the environment.
+
+ 2. To override the name of the buildout config file, set
+    LAVA_BUILDOUT_CFG.
+
+ 3. To deploy a specific revision of LAVA_MANIFEST_BRANCH, add the
+    revision number to the command line::
+
+     $ ./lava-deployment-tool install NAME <revno>
+
+See `different kinds of deployment`_ below for more about customizing
+instances.
+
+To create an administrator user for a newly-created instance::
+
+ $ ./lava-deployment-tool manage NAME createsuperuser
+
+This user can access the administration panel, edit permissions to other users
+and add bundle streams, devices, etc...
+
+.. _buildout: http://www.buildout.org/
+.. _lava-manifest: https://launchpad.net/lava-manifest
+
+Backing Up LAVA instance
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+LAVA instances store persistent data in two locations:
+
+ * On the filesystem, in the directory
+   ``/srv/lava/$LAVA_INSTANCE/var/lib/lava-server/media``
+ * In a PostgreSQL database in the default cluster named
+   ``lava-$LAVA_INSTANCE``
+
+Backing up those two items is sufficient to preserve the entire system
+state.  You can do this by running::
+
+ $ lava-deployment-tool backup $LAVA_INSTANCE
+
+which will create a backup with an ID based on the current date and
+time in a directory named
+"/srv/lava/backups/$LAVA_INSTANCE/$SNAPSHOT_ID/".  You can make
+/srv/lava/backups a symlink to a more appropriate location if you
+want.
+
+Generally before backing up you should make sure that LAVA instance is
+turned off. This depends on how your instance is started. If you were
+using upstart the following shell command should turn LAVA off::
+
+ $ sudo stop lava
+
+If you take a backup while running, you will need to do some manual
+cleanup when you restore from it.
+
+Restoring from backup
+^^^^^^^^^^^^^^^^^^^^^
+
+Running the command ::
+
+ $ lava-deployment-tool restore $LAVA_INSTANCE $SNAPSHOT_ID
+
+will restore the given snapshot of the named instance.  This will
+first erase the database and media files of the named instance, so be
+careful what you type!
+
+You can restore an instance from a backup taken from a distinct
+instance with a command like::
+
+ $ lava-deployment-tool restore $TARGET_INSTANCE $SOURCE_INSTANCE/$SNAPSHOT_ID
+
+Currently to restore from a backup taken on a different machine, you
+have to put it under /srv/lava/backups, then run an appropriate
+"lava-deployment-tool restore" command (we will hopefully make this
+more natural soon).
+
+You cannot restore to an instance while it is running.
+
+Updating LAVA instance
+^^^^^^^^^^^^^^^^^^^^^^
+
+In some sense, each revision of $LAVA_MANIFEST_BRANCH is a release and
+can be updated to (from time to time a revision of lp:lava-manifest will
+receive additional testing and be tagged as a release).  You can use
+lava-deployment-tool to update to a revision of the LAVA_MANIFEST_BRANCH
+that was used for that instance::
+
+ $ ./lava-deployment-tool upgrade <revno>
+
+There are some points to consider:
+
+1) Upgrades may alter the database or persistent media files. It is
+   wise to perform a full system backup before each upgrade. While we
+   don't anticipate catastrophic failures it's better to be safe than
+   sorry. Refer to the previous chapter for details.
+
+2) Upgrades may introduce additional dependencies, which will be
+   installed automatically. Periodically we make use of additional
+   third party open source libraries. Those libraries will be
+   installed for a single LAVA instance _only_. Your system libraries
+   are not affected by this step.
+
+3) Upgrades require network access. If you are behind a firewall or a
+   corporate http proxy you may experience failures. Please note that the
+   upgrade process does not install components without first downloading all of
+   the required pieces so in case of a network failure your current installation
+   should not be affected. While typically only HTTP and HTTPS protocols are
+   being used at times you may see attempts to connect to native protocols used
+   by git, bazaar or mercurial.
+
+4) The upgrade works by first installing the new code independently
+   from the currently running code, updates a symlink to make the new
+   code current, runs any database migrations that are needed and
+   restarts the services.  This means that many, but not all, kinds of
+   error during upgrade will not result in disruption to the running
+   service.
+
+5) Upgrading process rebuilds the collection of static assets served
+   by Apache.  During that moment you may encounter a very brief
+   failure to resolve some of the static assets (typically images,
+   cascading style sheets and javascript libraries)
+
+Upgrading from a pip-based instance to a buildout based instance
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In June 2012, we switched from a pip-based installation method to
+using buildout.  lava-deployment-tool can convert a pip-based
+installation to a buildout-based one, but without care this can result
+in changes to the set of packages/LAVA extensions installed.
+
+If you have no special requirements as to the extensions that should
+be installed you can just run "lava-deployment-tool upgrade
+$instance", and say y when prompted.
+
+If you have custom requirements, you should:
+
+ 1. create a test instance
+
+ 2. in this test instance, create custom buildout config file (see
+    `Limited Deployments`_ below) that installs the components you
+    want
+
+ 3. put this config file into the root of your existing instance as a
+    filed called, say, custom.cfg
+
+ 4. run LAVA_BUILDOUT_CFG=../../custom.cfg upgrade $instance
+
+Testing this process several times before running it on your
+production instance is advisable!
+
+Installing multiple LAVA instances on single IP machine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After installing and starting a LAVA instance using the instructions above,
+you can use "toggle" sub command to change how you access the instance.
+This is particularly useful for development and testing where you may
+not want to, or be able to setup vhosts for all of the instances you
+install locally.
+
+For instance, if you wanted to have two instances installed locally
+called "test1" and "test2", you can use the "location" toggle to set it
+so that you can access them on your local machine using:
+http://localhost/test1
+http://localhost/test2 ::
+
+ $ lava-deployment-tool toggle $LAVA_INSTANCE location
+
+Then you can access the LAVA instance via:
+    http://IP/$LAVA_INSTANCE
+
+You also can turn it back with the command below::
+
+ $ lava-deployment-tool toggle $LAVA_INSTANCE vhost
+
+Then you can access the LAVA instance via:
+    http://virtual-host/
+
+There is also a command to toggle all LAVA instances one time::
+
+    lava-deployment-tool toggle_all location
+
+Anatomy of a LAVA instance
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An instance is composed of several parts:
+
+ - A new system user account called lava-$LAVA_INSTANCE
+ - A directory tree similar to standard unix filesystem rooted
+   in $LAVA_PREFIX/$LAVA_INSTANCE/
+ - A postgres user and database in the default cluster, both named
+   lava-$LAVA_INSTANCE
+
+A note on Postgres versions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+lava-deployment-tool creates its databases in the default postgres
+cluster (on Ubuntu this is the 'main' cluster of whichever version of
+postgres was installed first).  Using a different version/cluster and
+moving between versions is not technically difficult but not currently
+supported.
+
+Different kinds of deployment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Production-like
+---------------
+
+For our production deployment, we use the buildout-production.cfg
+buildout file which completely locks down the version of everything
+that's being deployed.  If you want to run the same kind of deployment
+as we do, set LAVA_BUILDOUT_CFG to ``buildout-production.cfg`` when
+creating the instance::
+
+ $ LAVA_BUILDOUT_CFG=buildout-production.cfg lava-deployment-tool install production
+
+To update the version of some component that is deployed we release
+that component, update the buildout-production.cfg file in
+lp:lava-manigest to refer to the new version and deploy the new
+revision.
+
+Local Development
+-----------------
+
+If you want an instance to use a custom branch of a component, you can
+drop the branch or a symlink to the branch in
+``/srv/lava/instances/$instances/code/current/local`` and re-run
+buildout.  For example::
+
+  $ bzr branch lp:lava-scheduler ~/src/my-scheduler-branch
+  $ cd /srv/lava/instances/$instance/code/current
+  $ ln -s ~/src/my-scheduler-branch local/ # The name of the symlink doesn't matter;
+                                           # buildout looks at the setup.py
+  $ ./bin/buildout
+
+Non-production instances contain some scripts that can help create and
+remove symlinks::
+
+  $ bzr branch lp:lava-scheduler ~/src/my-scheduler-branch
+  $ . /srv/lava/instances/testinstance/bin/activate
+  $ lava-develop-local ~/src/my-scheduler-branch
+  Determining egg name... lava-scheduler
+  + ln -sfT ~/src/my-scheduler-branch /srv/lava/instances/testinstance/code/current/local/lava-scheduler
+  ...
+  ... hack ...
+  $ lava-undevelop-local ~/src/my-scheduler-branch
+  removed /srv/lava/instances/testinstance/code/current/local/lava-scheduler
+
+Limited Deployments
+-------------------
+
+For a limited deployment, for example if you do not want to run the
+scheduler, you can set ``LAVA_BUILDOUT_CFG`` to point to a buildout
+config file you create.  Currently you can only do this after an
+instance is created (unfortunately).  So create an instance::
+
+ $ lava-deployment-tool install limited
+
+Create the custom buildout.cfg::
+
+ $ cat > /srv/lava/instances/limited/code/custom.cfg <<EOF
+ [buildout]
+ extends = buildout.cfg
+
+ [server]
+ eggs -= lava-scheduler
+ EOF
+
+And set it to be used in ``instance.conf``::
+
+ $ vim /srv/lava/instances/limited/code/custom.cfg
+ $ grep LAVA_BUILDOUT_CFG /srv/lava/instances/limited/code/custom.cfg
+ LAVA_BUILDOUT_CFG='../custom.cfg'
+
+Finally, 'upgrade' the instance to get it to use the new config file::
+
+ $ ./lava-deployment-tool upgrade limited
+
+
+Contact and bug reports
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Please report bugs using
+https://bugs.launchpad.net/lava-deployment-tool/+filebug
+
+Feel free to contact us at validation (at) linaro (dot) org.
