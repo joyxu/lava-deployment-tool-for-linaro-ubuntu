@@ -633,6 +633,11 @@ wizard_app() {
     echo "LAVA application configuration"
     echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
     echo
+    if [ "$LAVA_DEV_MODE" = yes ]; then
+        LAVA_SERVER_DEBUG=true
+    else
+        LAVA_SERVER_DEBUG=false
+    fi
     return 0
 }
 
@@ -644,7 +649,7 @@ install_app() {
         echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
         cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf <<SETTINGS_CONF
 {
-    "DEBUG": false,
+    "DEBUG": $LAVA_SERVER_DEBUG,
     "TEMPLATE_DIRS": [
         "$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/templates",
         "$LAVA_PREFIX/$LAVA_INSTANCE/code/current/server_code/templates/"
