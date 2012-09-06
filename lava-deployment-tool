@@ -906,10 +906,10 @@ cmd_setup() {
 
         set -xe
 
-	echo "Add Linaro tools ppa"
-	sudo apt-get install --yes python-software-properties
-	sudo add-apt-repository --yes ppa:linaro-maintainers/tools
-	sudo apt-get update
+        echo "Add Linaro tools ppa"
+        sudo apt-get install --yes python-software-properties
+        sudo add-apt-repository --yes ppa:linaro-maintainers/tools
+        sudo apt-get update
 
         echo "Installing english language pack, if needed"
         # XXX: I'm not 100% sure this is needed
