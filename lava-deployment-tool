@@ -50,6 +50,13 @@ os_check() {
                     export LAVA_SUPPORTED=1
                     LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools unzip bzr"
                     ;;
+                quantal)
+                    #apache2-dev is no longer available. use apache2-threaded-dev instead.
+                    #see http://changelogs.ubuntu.com/changelogs/pool/main/a/apache2/apache2_2.2.22-6ubuntu2/changelog
+                    export LAVA_PYTHON=python2.7
+                    export LAVA_SUPPORTED=1
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-threaded-dev postgresql rabbitmq-server mercurial conmux linaro-image-tools unzip bzr"
+                    ;;
             esac
             ;;
     esac
