@@ -18,11 +18,19 @@ are doing otherwise, here are the basic set of commands to get an instance::
  $ ./lava-deployment-tool setup
  $ ./lava-deployment-tool install testinstance
  $ ./lava-deployment-tool manage testinstance createsuperuser
- $ ./lava-deployment-tool manage testinstance runserver
 
-Assuming everything went well, you should be able to point a web
-browser at http://127.0.0.1:8000/, see the lava-server default page
-and sign-in.
+At this point you can start your LAVA instance one of two ways:
+
+* Running under the apache web server with::
+
+  $ sudo start lava-instance LAVA_INSTANCE=testinstance
+
+* A development server running on http://localhost:8000 (requires *DEBUG* set to
+  true in */srv/lava/instances/testinstance/etc/lava-server/settings.conf*)::
+
+  $ #NOTE: these are equivalent, one just doesn't require lava-deployment-tool
+  $ ./lava-deployment-tool manage testinstance runserver
+  $ /srv/lava/instances/testinstance/bin/lava-server manage runserver
 
 Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
