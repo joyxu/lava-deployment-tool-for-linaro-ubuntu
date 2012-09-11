@@ -194,11 +194,11 @@ def make_html(components, instances):
     for heading in  'component', 'tip revno', 'unreleased revisions', 'latest release':
         heading_row(tags.th(heading))
     for instance_name in sorted(instances):
-        heading_row(tags.th(instance_name))
+        heading_row(tags.th(instance_name, class_="instance-name"))
     table(tags.thead(heading_row))
     tbody = tags.tbody()
     for name, component in sorted(components.items()):
-        row = tags.tr()
+        row = tags.tr(class_="component")
         revs_between_ids = {}
         extra_rows = []
         def td(*args, **kwargs):
@@ -252,7 +252,7 @@ def make_html(components, instances):
                             tags.td(
                                 format_revlist(revlist, name=sub_name),
                                 colspan=str(4 + len(instances))),
-                            class_='hidden',
+                            class_='hidden branch-diff',
                             id="show-" + id_))
                     td(
                         tags.a(ver, href='#', class_='highlight'),
@@ -309,7 +309,7 @@ def make_html(components, instances):
                                     tags.td(
                                         tables,
                                         colspan=str(4 + len(instances))),
-                                    class_='hidden',
+                                    class_='hidden branch-diff',
                                     id="show-" + id_))
                         else:
                             if branch.last_revision() == component.tip_revno:
