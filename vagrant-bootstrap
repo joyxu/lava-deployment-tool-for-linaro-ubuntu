@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+set -x
+
+export DEBIAN_FRONTEND=noninteractive
+
+if nc -z -w 1 10.0.2.2 3142; then
+  # use apt-cacher-ng running on the host as proxy
+  echo 'Acquire::http::Proxy "http://10.0.2.2:3142";' > /etc/apt/apt.conf.d/01proxy
+fi
+
+# upgrade system at most once every day
+marker=/var/tmp/.apt-get-update.$(date +%Y%m%d)
+if ! test -f $marker; then
+  apt-get update
+  apt-get -q -y dist-upgrade
+  apt-get -q -y install --no-install-recommends virtualbox-guest-dkms virtualbox-guest-utils
+  touch $marker
+fi
+
+if ! test -d /srv/lava/instances/development; then
+  cd /vagrant && su vagrant -c './lava-deployment-tool setup --non-interactive'
+  cd /vagrant && su vagrant -c './lava-deployment-tool install --non-interactive --developer-mode development'
+fi
