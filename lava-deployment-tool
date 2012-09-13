@@ -33,6 +33,11 @@ export LAVA_SUPPORTED=0
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
 LAVA_INSTALL_STEPS="user fs buildout database broker web_hosting app config_app"
 
+# Will cause Django to be run with DEBUG enabled.
+LAVA_DEV_MODE=no
+
+# If set to yes no questions will be asked and default values will be used
+LAVA_NON_INTERACTIVE=no
 
 os_check() {
     case `lsb_release -i -s` in
@@ -67,6 +72,23 @@ uid_check() {
     if [ $(id -u) = 0 ]; then
         echo "Running as root is not supported"
         exit 1
+    fi
+}
+
+_read_input() {
+    prompt="$1"
+    varname="$2"
+    default_value="$3"
+    if [ "$LAVA_NON_INTERACTIVE" = yes ]; then
+        eval "$varname='$default_value'"
+    else
+        local _response
+        read -p "$prompt" _response
+        if [ -z "$_response" -a -n "$default_value" ]; then
+            eval "$varname='$default_value'"
+        else
+            eval "$varname='$_response'"
+        fi
     fi
 }
 
@@ -162,7 +184,7 @@ _configure() {
         # Response loop
         while true; do
             echo "(it is safe to CTRL-C at this stage!)"
-            read -p "Is everything okay? (yes|no) " RESPONSE
+            _read_input "Is everything okay? (yes|no) [yes]: " RESPONSE yes
             case "$RESPONSE" in
                 yes|no)
                     break
@@ -213,14 +235,14 @@ wizard_user() {
     echo "next   - Use the user name as is"
     echo "edit   - Edit the user name"
 
-    read -p "Please please decide what to do: " RESPONSE
+    _read_input "Please please decide what to do [next]: " RESPONSE next
 
     case "$RESPONSE" in
         next)
             return 0  # loop complete
             ;;
         edit)
-            read -p "New user name: " LAVA_SYS_USER_NEW
+            _read_input "New user name: " LAVA_SYS_USER_NEW
             if test -n "$LAVA_SYS_USER_NEW" && echo "$LAVA_SYS_USER_NEW" | grep -q -E -e '[a-z]+[-a-z0-9]*'; then
                 echo "New user name is '$LAVA_SYS_USER_NEW'"
                 LAVA_SYS_USER="$LAVA_SYS_USER_NEW" 
@@ -261,7 +283,7 @@ wizard_fs() {
     echo
     echo "next    - continue"
 
-    read -p "Please decide what to do: " RESPONSE
+    _read_input "Please decide what to do [next]: " RESPONSE next
 
     case "$RESPONSE" in
         next)
@@ -382,7 +404,7 @@ wizard_database() {
     echo
     echo "next    - continue"
 
-    read -p "Please decide what to do: " RESPONSE
+    _read_input "Please decide what to do [next]: " RESPONSE next
 
     case "$RESPONSE" in
         next)
@@ -461,7 +483,7 @@ wizard_broker() {
     echo
     echo "next    - continue"
 
-    read -p "Please decide what to do: " RESPONSE
+    _read_input "Please decide what to do [next]: " RESPONSE next
 
     case "$RESPONSE" in
         next)
@@ -482,7 +504,6 @@ install_broker() {
 
 defaults_web_hosting() {
     export LAVA_APACHE_VHOST=$(hostname)
-    export LAVA_DEV_MODE=no
 }
 
 wizard_web_hosting() {
@@ -504,7 +525,7 @@ wizard_web_hosting() {
     echo "next    - continue"
     echo "dev     - toggle developer mode"
 
-    read -p "Please decide what to do: " RESPONSE
+    _read_input "Please decide what to do [next]: " RESPONSE next
 
     case "$RESPONSE" in
         next)
@@ -715,11 +736,9 @@ defaults_config_app() {
 
 
 wizard_config_app() {
-    local _question="Do you want to enable the scheduler in this instance?"
-    whiptail --title "Enable the scheduler?" --yesno "$_question" 10 40 && LAVA_SCHEDULER_ENABLED=yes || LAVA_SCHEDULER_ENABLED=no
+    _read_input "Enable the scheduler in this instance (yes/no)? [yes] " LAVA_SCHEDULER_ENABLED yes
 
-    local _question="Do you want to config the lava-dispatcher?"
-    whiptail --title "Configurate the lava-dispatcher?" --yesno "$_question" 10 40 && LAVA_DISPATCHER_CONFIG=yes || LAVA_DISPATCHER_CONFIG=no
+    _read_input "Do you want to configure the lava-dispatcher (yes/no)? [no] " LAVA_DISPATCHER_CONFIG no
 
     if [ $LAVA_DISPATCHER_CONFIG = yes ]; then
         config_lava_dispatcher
@@ -742,7 +761,7 @@ config_lava_dispatcher() {
 
     while true; do
 
-        read -p "Please enter the IP address: " LAVA_SERVER_IP
+        _read_input "Please enter the IP address: " LAVA_SERVER_IP
 
         if test -n "$LAVA_SERVER_IP" && echo "$LAVA_SERVER_IP" | grep -q -E -e '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
             echo "The IP address is '$LAVA_SERVER_IP'"
@@ -758,7 +777,7 @@ config_lava_dispatcher() {
 
     echo "This is the address and port of cache proxy service, format is like:"
     echo "http://192.168.1.10:3128/"
-    read -p "Please enter the URL: " LAVA_PROXY
+    _read_input "Please enter the URL: " LAVA_PROXY
 
 
     # Location for rootfs/boot tarballs extracted from images
@@ -906,7 +925,7 @@ cmd_setup() {
         echo " 3) Setting up the egg and download cache for buildbot"
         echo " 4) Setting up upstart jobs (incuding removal of stale jobs)"
         echo
-        read -p "Type YES to continue: " RESPONSE
+        _read_input "Type YES to continue, anything else to abort: " RESPONSE YES
         test "$RESPONSE" = 'YES' || return
 
         set -xe
@@ -1320,7 +1339,7 @@ _maybe_pre_convert_to_buildout () {
     echo "lose any custom packages you have installed unless you "
     echo "already have a plan to cope with that."
     echo
-    read -p "Proceed? (y/n) " RESPONSE
+    _read_input "Proceed? (y/n) " RESPONSE
 
     if [ "$RESPONSE" != 'y' ]; then
         exit 1;
@@ -1379,7 +1398,7 @@ cmd_remove() {
     echo "We will remove the RabbitMQ user: $LAVA_RABBIT_USER"
     echo "We will remove the RabbitMQ vhost: $LAVA_RABBIT_VHOST"
     echo
-    read -p "Type DESTROY to continue: " RESPONSE
+    _read_input "Type DESTROY to continue: " RESPONSE
     test "$RESPONSE" = 'DESTROY' || return
 
     logger "Removing LAVA instance $LAVA_INSTANCE"
@@ -1489,7 +1508,7 @@ cmd_restore-db () {
     echo "Are you sure you want to restore the database of $LAVA_INSTANCE from"
     echo "$SNAPSHOT_ID?  This will DESTROY the existing database of $LAVA_INSTANCE"
     echo
-    read -p "Type RESTORE to continue: " RESPONSE
+    _read_input "Type RESTORE to continue: " RESPONSE
     test "$RESPONSE" = 'RESTORE' || return
 
     _restore_db_from_dump "$db_snapshot"
@@ -1517,7 +1536,7 @@ cmd_restore() {
     echo "Are you sure you want to restore instance $LAVA_INSTANCE from"
     echo "$SNAPSHOT_ID?  This will DESTROY the existing state of $LAVA_INSTANCE"
     echo
-    read -p "Type RESTORE to continue: " RESPONSE
+    _read_input "Type RESTORE to continue: " RESPONSE
     test "$RESPONSE" = 'RESTORE' || return
 
     _restore_db_from_dump "$db_snapshot"
@@ -1771,6 +1790,59 @@ cmd_toggle_all(){
     fi
 }
 
+usage() {
+    cat <<END_OF_USAGE
+Usage: ${__FILE_NAME__} <command> [options]"
+
+Key commands:"
+    setup   - prepare machine for LAVA (prerequisites)"
+              (do this once before trying out others)"
+Commands for working with instances:"
+    list    - list all instances installed"
+    bundle  - create a bundle in preparation for installing"
+              or updating"
+    install - install LAVA instance"
+    upgrade - upgrade LAVA instance"
+    remove  - remove LAVA instance (undoes install)"
+    toggle  - toggle one LAVA instance between being"
+            - referenced by the location (aka "
+              insance name) or by the vhost"
+              * vhost site: the instance is configured with"
+                  VirtualHost directive of apache"
+                  (ex. http://vhost.example.com)"
+              * location site: the instance is configured"
+                  with Location directive of apache"
+                  (ex. http://localhost/instance_name)"
+            - With the location site we can deploy multiple"
+            - instances on a single IP machine, while with"
+            - the vhost site we need have multiple hostnames"
+            - or IPs for deploying multiple instances"
+            - run ${__FILE_NAME__} toggle \$instance [location|vhost]"
+    toggle_all  - toggle all LAVA instances one time between"
+            - used as location site or used as vhost site"
+            - like toggle command"
+            - run ${__FILE_NAME__} toggle_all [location|vhost]"
+Commands for working with data:"
+    backup  - backup your data"
+    restore - restore earlier backup (removes current data)"
+Commands for working at lower level:"
+    manage  - run lava-server management commands"
+
+Options:"
+
+-d, --developer-mode"
+  Sets developer mode. During installation of an instance,"
+  if developer mode is turned the instance will be configured"
+  to be run with the Django DEBUG setting turned on"
+
+-n, --non-interactive"
+  Runs non-interactively. Default answers for all questions"
+  will be assumed."
+
+See the README file for instructions"
+END_OF_USAGE
+}
+
 
 main() {
     os_check
@@ -1793,45 +1865,37 @@ main() {
     else
         cmd=help
     fi
+
+    options="
+        -o nd
+        --long non-interactive
+        --long developer-mode
+    "
+    TEMP="$(getopt --name ${__FILE_NAME__} $options -- "$@")"
+    getopt_status=$?
+    if [ $getopt_status -ne 0 ]; then
+        exit $getopt_status
+    fi
+    eval set -- "$TEMP"
+
+    while :; do
+        arg="$1"
+        shift
+        case "$arg" in
+            --non-interactive|-n)
+                LAVA_NON_INTERACTIVE=yes
+                ;;
+            --developer-mode|-d)
+                LAVA_DEV_MODE=yes
+                ;;
+            --)
+                break;;
+        esac
+    done
+
     case "$cmd" in
         ^$|help)
-            echo "Usage: ${__FILE_NAME__} <command> [options]"
-            echo
-            echo "Key commands:"
-            echo "    setup   - prepare machine for LAVA (prerequisites)"
-            echo "              (do this once before trying out others)"
-            echo " working with instances:"
-            echo "    list    - list all instances installed"
-            echo "    bundle  - create a bundle in preparation for installing"
-            echo "              or updating"
-            echo "    install - install LAVA instance"
-            echo "    upgrade - upgrade LAVA instance"
-            echo "    remove  - remove LAVA instance (undoes install)"
-            echo "    toggle  - toggle one LAVA instance between being"
-            echo "            - referenced by the location (aka "
-            echo "              insance name) or by the vhost"
-            echo "              * vhost site: the instance is configured with"
-            echo "                  VirtualHost directive of apache"
-            echo "                  (ex. http://vhost.example.com)"
-            echo "              * location site: the instance is configured"
-            echo "                  with Location directive of apache"
-            echo "                  (ex. http://localhost/instance_name)"
-            echo "            - With the location site we can deploy multiple"
-            echo "            - instances on a single IP machine, while with"
-            echo "            - the vhost site we need have multiple hostnames"
-            echo "            - or IPs for deploying multiple instances"
-            echo "            - run ${__FILE_NAME__} toggle \$instance [location|vhost]"
-            echo "    toggle_all  - toggle all LAVA instances one time between"
-            echo "            - used as location site or used as vhost site"
-            echo "            - like toggle command"
-            echo "            - run ${__FILE_NAME__} toggle_all [location|vhost]"
-            echo " working with data:"
-            echo "    backup  - backup your data"
-            echo "    restore - restore earlier backup (removes current data)"
-            echo " working at lower level:"
-            echo "    manage  - run lava-server management commands"
-            echo
-            echo "See the README file for instructions"
+            usage
             ;;
         setup)
             cmd_setup "$@"
