@@ -80,7 +80,9 @@ _read_input() {
     varname="$2"
     default_value="$3"
     if [ "$LAVA_NON_INTERACTIVE" = yes ]; then
-        eval "$varname='$default_value'"
+        if [ -n "$default_value" ]; then
+            eval "$varname='$default_value'"
+        fi
     else
         local _response
         read -p "$prompt" _response
