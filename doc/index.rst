@@ -32,6 +32,32 @@ At this point you can start your LAVA instance one of two ways:
   $ ./lava-deployment-tool manage testinstance runserver
   $ /srv/lava/instances/testinstance/bin/lava-server manage runserver
 
+Quickstart with Vagrant
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Vagrant_ is a tool to manage virtual machines. You can use it to keep
+development environments isolated from your main system.
+
+.. _Vagrant: http://vagrantup.com/
+
+Once you have Vagrant installed, you will need an Ubuntu Precise virtual
+machine template (a "base box" in Vagrant terms), which can be obtained
+with::
+
+ $ vagrant box add ubuntu-precise http://files.vagrantup.com/precise64.box
+
+The above step only needs to be done once. And the base box you get be
+reused for other Vagrant projects.
+
+Then you can bring a VM with LAVA installed up with a single command,
+run from inside the directory where you have ``lava-deployment-tool``::
+
+ $ vagrant up
+
+At the time of writing, the ``vagrant up`` step took a little less than
+20 minutes. After ``vagrant up`` finishes, you can access you LAVA
+instance by entering http://localhost:8080/ in your web browser.
+
 Software Requirements
 ^^^^^^^^^^^^^^^^^^^^^
 
