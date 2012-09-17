@@ -1,0 +1,47 @@
+#!/bin/sh
+
+set -e
+set -x
+
+export DEBIAN_FRONTEND=noninteractive
+
+if nc -z -w 1 10.0.2.2 3142; then
+  # use apt-cacher-ng running on the host as proxy
+  echo 'Acquire::http::Proxy "http://10.0.2.2:3142";' > /etc/apt/apt.conf.d/01proxy
+fi
+
+# upgrade system at most once every day
+marker=/var/tmp/.apt-get-update.$(date +%Y%m%d)
+if ! test -f $marker; then
+  apt-get update
+  apt-get -q -y dist-upgrade
+  apt-get -q -y install --no-install-recommends virtualbox-guest-dkms virtualbox-guest-utils
+  touch $marker
+fi
+
+if ! test -d /srv/lava/instances/development; then
+  cd /vagrant && su vagrant -c './lava-deployment-tool setup --non-interactive'
+  cd /vagrant && su vagrant -c './lava-deployment-tool install --non-interactive --developer-mode development'
+fi
+
+set +x
+
+cat <<INSTRUCTIONS
+
+-----------------------------------------------------------------------
+
+You are all set! Now browse to http://localhost:8080/ to check out your
+shiny new LAVA instance!
+
+Run \`vagrant ssh\` to get a shell in the VM. This copy of
+lava-deployment-tool is mounted on the VM at /vagrant.
+
+Once you are logged in, you might want to create an account to manage
+your instance, with:
+
+  $ /vagrant/lava-deployment-tool manage development createsuperuser
+
+Check out the lava-deployment-tool documention at
+http://lava-deployment-tool.readthedocs.org/en/latest/index.html
+
+INSTRUCTIONS
