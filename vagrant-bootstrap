@@ -19,9 +19,14 @@ if ! test -f $marker; then
   touch $marker
 fi
 
+basedir="$1"
+if test -z "$basedir"; then
+  basedir=/vagrant
+fi
 if ! test -d /srv/lava/instances/development; then
-  cd /vagrant && su vagrant -c './lava-deployment-tool setup --non-interactive'
-  cd /vagrant && su vagrant -c './lava-deployment-tool install --non-interactive --developer-mode development'
+  cd $basedir
+  su vagrant -c './lava-deployment-tool setup -nd'
+  su vagrant -c './lava-deployment-tool install -nd development'
 fi
 
 set +x
