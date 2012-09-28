@@ -774,7 +774,10 @@ config_lava_dispatcher() {
             echo "The IP address is '$LAVA_SERVER_IP'"
             break
         else
-            echo "Incorrect IP address"
+            echo "$LAVA_SERVER_IP is not a valid IP address."
+            if [ "$LAVA_NON_INTERACTIVE" = "yes" ]; then
+                exit 1
+            fi
         fi
     done
 
