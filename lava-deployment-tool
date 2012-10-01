@@ -763,7 +763,8 @@ config_lava_dispatcher() {
 
     if [ -z "$LAVA_SERVER_IP" ]; then
         # try the IP associated with the default gateway
-        LAVA_SERVER_IP=$(ip route | awk '{ if ($1 == "default") { print($3) } }')
+        local iface=$(ip route | awk '{ if ($1 == "default") { print($5) } }')
+        LAVA_SERVER_IP=$(ip addr show "$iface" | awk '{ if ($1 == "inet") { gsub("/.*", "", $2); print($2) } }')
     fi
 
     while true; do
