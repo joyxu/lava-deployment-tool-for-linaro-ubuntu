@@ -51,6 +51,9 @@ psql -c 'update lava_scheduler_app_device set current_job_id = null, status = 4'
 # 6. edit health jobs to submit to staging
 
 "${inst}/bin/py" -c '
+# hack to make sure settings is loaded before importing db code.
+from django.conf import settings
+settings.INSTALLED_APPS
 from django.db.models import Q
 from lava_scheduler_app.models import DeviceType
 
