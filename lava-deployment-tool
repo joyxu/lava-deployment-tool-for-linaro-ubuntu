@@ -740,7 +740,7 @@ defaults_config_app() {
 wizard_config_app() {
     _read_input "Enable the scheduler in this instance (yes/no)? [yes] " LAVA_SCHEDULER_ENABLED yes
 
-    _read_input "Do you want to configure the lava-dispatcher (yes/no)? [no] " LAVA_DISPATCHER_CONFIG no
+    _read_input "Do you want to configure the lava-dispatcher (yes/no)? [yes] " LAVA_DISPATCHER_CONFIG yes
 
     if [ $LAVA_DISPATCHER_CONFIG = yes ]; then
         config_lava_dispatcher
@@ -761,6 +761,12 @@ config_lava_dispatcher() {
 
     ifconfig | grep 'Ethernet\|inet addr'
 
+    if [ -z "$LAVA_SERVER_IP" ]; then
+        # try the IP associated with the default gateway
+        local iface=$(ip route | awk '{ if ($1 == "default") { print($5) } }')
+        LAVA_SERVER_IP=$(ip addr show "$iface" | awk '{ if ($1 == "inet") { gsub("/.*", "", $2); print($2) } }')
+    fi
+
     while true; do
 
         _read_input "Please enter the IP address: " LAVA_SERVER_IP
@@ -769,7 +775,10 @@ config_lava_dispatcher() {
             echo "The IP address is '$LAVA_SERVER_IP'"
             break
         else
-            echo "Incorrect IP address"
+            echo "$LAVA_SERVER_IP is not a valid IP address."
+            if [ "$LAVA_NON_INTERACTIVE" = "yes" ]; then
+                exit 1
+            fi
         fi
     done
 
