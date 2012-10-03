@@ -759,7 +759,7 @@ config_lava_dispatcher() {
     echo ""
     echo "Here is the list of network device on this host"
 
-    ifconfig | grep 'Ethernet\|inet addr'
+    ip addr | awk '{ if ($1 == "inet" && $4 != "host") { gsub("/.*", "", $2); print("  " $2 " " $7) } }'
 
     if [ -z "$LAVA_SERVER_IP" ]; then
         # try the IP associated with the default gateway
