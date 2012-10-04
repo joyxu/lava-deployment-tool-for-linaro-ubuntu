@@ -656,7 +656,7 @@ wizard_app() {
     echo
     if [ "$LAVA_DEV_MODE" = yes ]; then
         LAVA_SERVER_DEBUG=true
-        LAVA_BUILDOUT_CFG=buildout-development.cfg
+        LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout-development.cfg}"
     else
         LAVA_SERVER_DEBUG=false
         LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
