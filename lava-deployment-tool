@@ -1803,54 +1803,54 @@ cmd_toggle_all(){
 
 usage() {
     cat <<END_OF_USAGE
-Usage: ${__FILE_NAME__} <command> [options]"
+Usage: ${__FILE_NAME__} <command> [options]
 
-Key commands:"
-    setup   - prepare machine for LAVA (prerequisites)"
-              (do this once before trying out others)"
-Commands for working with instances:"
-    list    - list all instances installed"
-    bundle  - create a bundle in preparation for installing"
-              or updating"
-    install - install LAVA instance"
-    upgrade - upgrade LAVA instance"
-    remove  - remove LAVA instance (undoes install)"
-    toggle  - toggle one LAVA instance between being"
-            - referenced by the location (aka "
-              insance name) or by the vhost"
-              * vhost site: the instance is configured with"
-                  VirtualHost directive of apache"
-                  (ex. http://vhost.example.com)"
-              * location site: the instance is configured"
-                  with Location directive of apache"
-                  (ex. http://localhost/instance_name)"
-            - With the location site we can deploy multiple"
-            - instances on a single IP machine, while with"
-            - the vhost site we need have multiple hostnames"
-            - or IPs for deploying multiple instances"
-            - run ${__FILE_NAME__} toggle \$instance [location|vhost]"
-    toggle_all  - toggle all LAVA instances one time between"
-            - used as location site or used as vhost site"
-            - like toggle command"
-            - run ${__FILE_NAME__} toggle_all [location|vhost]"
-Commands for working with data:"
-    backup  - backup your data"
-    restore - restore earlier backup (removes current data)"
-Commands for working at lower level:"
-    manage  - run lava-server management commands"
+Key commands:
+    setup   - prepare machine for LAVA (prerequisites)
+              (do this once before trying out others)
+Commands for working with instances:
+    list    - list all instances installed
+    bundle  - create a bundle in preparation for installing
+              or updating
+    install - install LAVA instance
+    upgrade - upgrade LAVA instance
+    remove  - remove LAVA instance (undoes install)
+    toggle  - toggle one LAVA instance between being
+            - referenced by the location (aka
+              insance name) or by the vhost
+              * vhost site: the instance is configured with
+                  VirtualHost directive of apache
+                  (ex. http://vhost.example.com)
+              * location site: the instance is configured
+                  with Location directive of apache
+                  (ex. http://localhost/instance_name)
+            - With the location site we can deploy multiple
+            - instances on a single IP machine, while with
+            - the vhost site we need have multiple hostnames
+            - or IPs for deploying multiple instances
+            - run ${__FILE_NAME__} toggle \$instance [location|vhost]
+    toggle_all  - toggle all LAVA instances one time between
+            - used as location site or used as vhost site
+            - like toggle command
+            - run ${__FILE_NAME__} toggle_all [location|vhost]
+Commands for working with data:
+    backup  - backup your data
+    restore - restore earlier backup (removes current data)
+Commands for working at lower level:
+    manage  - run lava-server management commands
 
-Options:"
+Options:
 
--d, --developer-mode"
-  Sets developer mode. During installation of an instance,"
-  if developer mode is turned the instance will be configured"
-  to be run with the Django DEBUG setting turned on"
+-d, --developer-mode
+  Sets developer mode. During installation of an instance,
+  if developer mode is turned the instance will be configured
+  to be run with the Django DEBUG setting turned on
 
--n, --non-interactive"
-  Runs non-interactively. Default answers for all questions"
-  will be assumed."
+-n, --non-interactive
+  Runs non-interactively. Default answers for all questions
+  will be assumed.
 
-See the README file for instructions"
+See the README file for instructions
 END_OF_USAGE
 }
 
