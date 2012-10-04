@@ -1357,6 +1357,7 @@ _maybe_pre_convert_to_buildout () {
     fi
 
     set -xe
+    LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
     _save_config
     install_buildout
     bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
