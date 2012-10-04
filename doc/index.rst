@@ -266,7 +266,7 @@ If you have custom requirements, you should:
  3. put this config file into the root of your existing instance as a
     filed called, say, custom.cfg
 
- 4. run LAVA_BUILDOUT_CFG=../../custom.cfg upgrade $instance
+ 4. run LAVA_BUILDOUT_CFG=../../custom.cfg lava-deployment-tool upgrade $instance
 
 Testing this process several times before running it on your
 production instance is advisable!
@@ -343,6 +343,11 @@ revision.
 
 Local Development
 -----------------
+
+For local development you should pass --developer-mode to
+lava-deployment-tool when creating the instance.  This will set
+DEBUG=True for Django and install a few extra packages needed to run
+LAVA's own tests.
 
 If you want an instance to use a custom branch of a component, you can
 drop the branch or a symlink to the branch in
