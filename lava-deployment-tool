@@ -11,8 +11,6 @@ LAVA_PREFIX=$LAVA_ROOT/instances
 
 # Deploy revisions of this branch
 LAVA_MANIFEST_BRANCH="${LAVA_MANIFEST_BRANCH-lp:lava-manifest}"
-# Use this buildout config file from $LAVA_MANIFEST_BRANCH
-LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
 
 # Where to cache the eggs and downloads for buildbot
 LAVA_EGG_CACHE=$LAVA_ROOT/.cache/eggs
@@ -658,8 +656,10 @@ wizard_app() {
     echo
     if [ "$LAVA_DEV_MODE" = yes ]; then
         LAVA_SERVER_DEBUG=true
+        LAVA_BUILDOUT_CFG=buildout-development.cfg
     else
         LAVA_SERVER_DEBUG=false
+        LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
     fi
     return 0
 }
