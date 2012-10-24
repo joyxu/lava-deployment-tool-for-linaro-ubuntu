@@ -448,6 +448,7 @@ DEFAULT_DATABASE_CONF
 
     # Create a database for our new user
     sudo -u postgres createdb \
+        --locale=en_US.UTF-8 \
         --encoding=UTF-8 \
         --owner="$LAVA_DB_USER" \
         --template=template0 \
