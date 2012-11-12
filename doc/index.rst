@@ -9,6 +9,18 @@ deployment. For that it is likely we will turn to Juju_.
 
 .. _Juju: https://juju.ubuntu.com/
 
+Getting LAVA Deployment Tool
+============================
+
+LAVA Deployment Tool could be downloaded from this URL_.
+
+.. _URL: https://launchpad.net/lava-deployment-tool/+download
+
+Alternatively in order to get the latest development code, do a bzr
+checkout as follows (install bzr if it is not available):
+
+ $ bzr branch lp:lava-deployment-tool
+
 Quickstart
 ^^^^^^^^^^
 
