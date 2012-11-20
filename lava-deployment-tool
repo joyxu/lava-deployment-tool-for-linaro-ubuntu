@@ -429,16 +429,18 @@ dbport=''
 dbtype='pgsql'
 DEFAULT_DATABASE_CONF
 
-    # Create database user
-    sudo -u postgres createuser \
-        --no-createdb \
-        --encrypted \
-        --login \
-        --no-superuser \
-        --no-createrole \
-        --no-password \
-        "$LAVA_DB_USER" \
-        || die "Failed to create database user"
+    # Create database user, if don't exists
+    if ! sudo -u postgres psql -c "SELECT usename FROM pg_user WHERE usename='$LAVA_DB_USER'" | grep "$LAVA_DB_USER"; then
+        sudo -u postgres createuser \
+            --no-createdb \
+            --encrypted \
+            --login \
+            --no-superuser \
+            --no-createrole \
+            --no-password \
+            "$LAVA_DB_USER" \
+            || die "Failed to create database user"
+    fi
 
     # Set a password for our new user
     sudo -u postgres psql \
@@ -446,15 +448,17 @@ DEFAULT_DATABASE_CONF
         --command="ALTER USER \"$LAVA_DB_USER\" WITH PASSWORD '$LAVA_DB_PASSWORD'" \
         || die "Failed to set database password"
 
-    # Create a database for our new user
-    sudo -u postgres createdb \
-        --locale=en_US.UTF-8 \
-        --encoding=UTF-8 \
-        --owner="$LAVA_DB_USER" \
-        --template=template0 \
-        --no-password \
-        "$LAVA_DB_NAME" \
-        || die "Failed to create a database"
+    # Create a database for our new user, if don't exists
+    if ! sudo -u postgres psql -c "SELECT datname FROM pg_database WHERE datname='$LAVA_DB_NAME'" | grep "$LAVA_DB_NAME"; then
+        sudo -u postgres createdb \
+            --locale=en_US.UTF-8 \
+            --encoding=UTF-8 \
+            --owner="$LAVA_DB_USER" \
+            --template=template0 \
+            --no-password \
+            "$LAVA_DB_NAME" \
+            || die "Failed to create a database"
+    fi
 }
 
 
