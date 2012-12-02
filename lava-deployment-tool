@@ -24,6 +24,8 @@ LAVA_UWSGI=1.0.3
 
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=23
+# Current required version of instance config
+REQUIRED_LAVA_CONFIG_VERSION=2
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -93,6 +95,16 @@ _read_input() {
 }
 
 
+evolve_config_0_1() {
+    LAVA_CONFIG_VERSION=1
+}
+
+evolve_config_1_2() {
+    LAVA_CONFIG_VERSION=2
+    LAVA_INSTANCE_OWNS_USER=yes
+}
+
+
 _load_configuration() {
     LAVA_INSTANCE=$1
 
@@ -109,6 +121,23 @@ _load_configuration() {
         export LAVA_RABBIT_VHOST=/
     fi
 
+    LAVA_CONFIG_VERSION="${LAVA_CONFIG_VERSION-0}"
+    if [ "$LAVA_CONFIG_VERSION" -gt "$REQUIRED_LAVA_CONFIG_VERSION" ]; then
+        die "instance config too new; upgrade lava-deployment-tool"
+    elif [ "$LAVA_CONFIG_VERSION" -lt "$REQUIRED_LAVA_CONFIG_VERSION" ]; then
+        echo "Upgrading config to version $REQUIRED_LAVA_CONFIG_VERSION"
+        while [ "$LAVA_CONFIG_VERSION" -lt "$REQUIRED_LAVA_CONFIG_VERSION" ]; do
+            local old_config_version="$LAVA_CONFIG_VERSION"
+            local evolve_func_name="evolve_config_${LAVA_CONFIG_VERSION}_$((LAVA_CONFIG_VERSION+1))"
+            echo "Running $evolve_func_name"
+            $evolve_func_name
+            if [ "${LAVA_CONFIG_VERSION}" -ne "$((old_config_version+1))" ]; then
+                die "$evolve_func_name failed to advance LAVA_CONFIG_VERSION"
+            fi
+        done
+        _save_config
+    fi
+
     export LAVA_SYS_USER
     export LAVA_DB_USER
     export LAVA_DB_NAME
@@ -118,6 +147,8 @@ _load_configuration() {
 
 _show_config() {
     cat <<INSTANCE_CONF
+# Config version
+LAVA_CONFIG_VERSION='$LAVA_CONFIG_VERSION'
 # Installation prefix
 LAVA_PREFIX='$LAVA_PREFIX'
 # Instance name
@@ -156,6 +187,7 @@ _save_config() {
 _configure() {
     set +x
     export LAVA_INSTANCE="$1"
+    export LAVA_CONFIG_VERSION="$REQUIRED_LAVA_CONFIG_VERSION"
     # Defaults + Wizard loop
     while true; do
         echo "Instance Configuration"
@@ -167,7 +199,6 @@ _configure() {
         for install_step in $LAVA_INSTALL_STEPS; do
             defaults_$install_step
             while true; do
-                defaults
                 echo
                 echo "Note: it is safe to CTRL-C at this stage!"
                 wizard_$install_step && break
@@ -294,6 +325,11 @@ wizard_user() {
             if test -n "$LAVA_SYS_USER_NEW" && echo "$LAVA_SYS_USER_NEW" | grep -q -E -e '[a-z]+[-a-z0-9]*'; then
                 echo "New user name is '$LAVA_SYS_USER_NEW'"
                 LAVA_SYS_USER="$LAVA_SYS_USER_NEW" 
+                if [ "$LAVA_SYS_USER" != "$(whoami)"]; then
+                    export LAVA_INSTANCE_OWNS_USER=yes
+                else
+                    export LAVA_INSTANCE_OWNS_USER=no
+                fi
             else
                 echo "Incorrect user name. It must be a simple ascii identifier"
             fi
@@ -479,16 +515,18 @@ dbport=''
 dbtype='pgsql'
 DEFAULT_DATABASE_CONF
 
-    # Create database user
-    sudo -u postgres createuser \
-        --no-createdb \
-        --encrypted \
-        --login \
-        --no-superuser \
-        --no-createrole \
-        --no-password \
-        "$LAVA_DB_USER" \
-        || die "Failed to create database user"
+    # Create database user, if it doesn't exist
+    if ! sudo -u postgres psql -c "SELECT usename FROM pg_user WHERE usename='$LAVA_DB_USER'" | grep "$LAVA_DB_USER"; then
+        sudo -u postgres createuser \
+            --no-createdb \
+            --encrypted \
+            --login \
+            --no-superuser \
+            --no-createrole \
+            --no-password \
+            "$LAVA_DB_USER" \
+            || die "Failed to create database user"
+    fi
 
     # Set a password for our new user
     sudo -u postgres psql \
@@ -496,14 +534,17 @@ DEFAULT_DATABASE_CONF
         --command="ALTER USER \"$LAVA_DB_USER\" WITH PASSWORD '$LAVA_DB_PASSWORD'" \
         || die "Failed to set database password"
 
-    # Create a database for our new user
-    sudo -u postgres createdb \
-        --encoding=UTF-8 \
-        --owner="$LAVA_DB_USER" \
-        --template=template0 \
-        --no-password \
-        "$LAVA_DB_NAME" \
-        || die "Failed to create a database"
+    # Create a database for our new user, if it doesn't exist
+    if ! sudo -u postgres psql -c "SELECT datname FROM pg_database WHERE datname='$LAVA_DB_NAME'" | grep "$LAVA_DB_NAME"; then
+        sudo -u postgres createdb \
+            --locale=en_US.UTF-8 \
+            --encoding=UTF-8 \
+            --owner="$LAVA_DB_USER" \
+            --template=template0 \
+            --no-password \
+            "$LAVA_DB_NAME" \
+            || die "Failed to create a database"
+    fi
 }
 
 
@@ -797,7 +838,7 @@ config_lava_dispatcher() {
 
     if [ -z "$LAVA_SERVER_IP" ]; then
         # try the IP associated with the default gateway
-        local iface=$(ip route | awk '{ if ($1 == "default") { print($5) } }')
+        local iface=$(ip route | awk '{ if ($1 == "default") { print($5); exit; } }')
         LAVA_SERVER_IP=$(ip addr show "$iface" | awk '{ if ($1 == "inet") { gsub("/.*", "", $2); print($2) } }')
     fi
 
@@ -1436,7 +1477,7 @@ cmd_remove() {
     echo "There is no automatic backup, there is no way to undo this step"
     echo "*** WARNING ***" 
 
-    if [ ${LAVA_INSTANCE_OWNS_USER-yes} = "yes" ]; then
+    if [ ${LAVA_INSTANCE_OWNS_USER} = "yes" ]; then
         echo "We will remove system user $LAVA_SYS_USER"
     fi
     echo "We will remove PostgreSQL database $LAVA_DB_NAME"
@@ -1462,7 +1503,7 @@ cmd_remove() {
     sudo -u postgres dropuser "$LAVA_DB_USER" || true
     sudo rabbitmqctl delete_user "$LAVA_RABBIT_USER" || true
     sudo rabbitmqctl delete_vhost "$LAVA_RABBIT_VHOST" || true
-    if [ ${LAVA_INSTANCE_OWNS_USER-yes} = "yes" ]; then
+    if [ ${LAVA_INSTANCE_OWNS_USER} = "yes" ]; then
         sudo userdel "$LAVA_SYS_USER" || true
     fi
     sudo rm -rf "$LAVA_PREFIX/$LAVA_INSTANCE" || true
