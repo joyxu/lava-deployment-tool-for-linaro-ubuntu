@@ -24,6 +24,8 @@ LAVA_UWSGI=1.0.3
 
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=23
+# Current required version of instance config
+REQUIRED_LAVA_CONFIG_VERSION=1
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -109,6 +111,23 @@ _load_configuration() {
         export LAVA_RABBIT_VHOST=/
     fi
 
+    LAVA_CONFIG_VERSION="${LAVA_CONFIG_VERSION-0}"
+    if [ "$LAVA_CONFIG_VERSION" -gt "$REQUIRED_LAVA_CONFIG_VERSION" ]; then
+        die "config too new; upgrade lava-deployment-tool"
+    else if [ "$LAVA_CONFIG_VERSION" -lt "$REQUIRED_LAVA_CONFIG_VERSION" ]; then
+        echo "Upgrading config to version $REQUIRED_LAVA_CONFIG_VERSION"
+        while [ "$LAVA_CONFIG_VERSION" -lt "$REQUIRED_LAVA_CONFIG_VERSION" ]; do
+            local old_config_version="$LAVA_CONFIG_VERSION"
+            local evolve_func_name="evolve_config_${LAVA_CONFIG_VERSION}_$((LAVA_CONFIG_VERSION+1))"
+            echo "Running $evolve_func_name"
+            $evolve_func_name
+            if [ "${LAVA_CONFIG_VERSION}" -ne "$((old_config_version+1))" ]; then
+                die "$evolve_func_name failed to advance LAVA_CONFIG_VERSION"
+            fi
+        done
+        _save_config
+    fi
+
     export LAVA_SYS_USER
     export LAVA_DB_USER
     export LAVA_DB_NAME
@@ -118,6 +137,8 @@ _load_configuration() {
 
 _show_config() {
     cat <<INSTANCE_CONF
+# Config version
+LAVA_CONFIG_VERSION='$LAVA_CONFIG_VERSION'
 # Installation prefix
 LAVA_PREFIX='$LAVA_PREFIX'
 # Instance name
@@ -155,6 +176,7 @@ _save_config() {
 _configure() {
     set +x
     export LAVA_INSTANCE="$1"
+    export LAVA_CONFIG_VERSION="$REQUIRED_LAVA_CONFIG_VERSION"
     # Defaults
     for install_step in $LAVA_INSTALL_STEPS; do
         defaults_$install_step
