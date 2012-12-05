@@ -32,6 +32,7 @@ export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
 LAVA_INSTALL_STEPS="devmode user fs buildout database web_hosting app config_app"
+LAVA_WORKER_STEPS="devmode user fs buildout remote_database web_hosting app config_app"
 
 # Will cause Django to be run with DEBUG enabled.
 LAVA_DEV_MODE=no
@@ -532,6 +533,41 @@ DEFAULT_DATABASE_CONF
             "$LAVA_DB_NAME" \
             || die "Failed to create a database"
     fi
+}
+
+defaults_remote_database() {
+    true
+}
+
+wizard_remote_database() {
+    echo
+    echo "Remote PostgreSQL server configuration"
+    echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    echo
+    echo "We will use PostgreSQL to store application state"
+    echo "(apart from files that are just files in your filesystem)"
+    echo
+
+    _read_input "Please enter the server name/IP: " LAVA_DB_SERVER
+    _read_input "Please enter the database name: " LAVA_DB_NAME
+    _read_input "Please enter the database user: " LAVA_DB_USER
+    _read_input "Please enter the database password: " LAVA_DB_PASSWORD
+}
+
+install_remote_database()
+{
+    logger "Creating database configuration for LAVA instance $LAVA_INSTANCE"
+
+    # Create database configuration file
+    cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/default_database.conf <<DEFAULT_DATABASE_CONF
+dbuser='$LAVA_DB_USER'
+dbpass='$LAVA_DB_PASSWORD'
+basepath=''
+dbname='$LAVA_DB_NAME'
+dbserver='$LAVA_DB_SERVER'
+dbport=''
+dbtype='pgsql'
+DEFAULT_DATABASE_CONF
 }
 
 defaults_web_hosting() {
@@ -1360,8 +1396,10 @@ cmd_remove() {
     if [ ${LAVA_INSTANCE_OWNS_USER} = "yes" ]; then
         echo "We will remove system user $LAVA_SYS_USER"
     fi
-    echo "We will remove PostgreSQL database $LAVA_DB_NAME"
-    echo "We will remove PostgreSQL user: $LAVA_DB_USER"
+    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
+        echo "We will remove PostgreSQL database $LAVA_DB_NAME"
+        echo "We will remove PostgreSQL user: $LAVA_DB_USER"
+    fi
     echo "We will remove everything in $LAVA_PREFIX/$LAVA_INSTANCE"
     echo "We will remove the apache site $LAVA_INSTANCE.conf"
     echo
@@ -1377,8 +1415,10 @@ cmd_remove() {
     sudo rm -f "/etc/apache2/sites-available/$LAVA_INSTANCE.conf" || true
     sudo rm -f "/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf" || true
     sudo rm -f "/etc/apache2/conf.d/$LAVA_INSTANCE.conf" || true
-    sudo -u postgres dropdb "$LAVA_DB_NAME" || true
-    sudo -u postgres dropuser "$LAVA_DB_USER" || true
+    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
+        sudo -u postgres dropdb "$LAVA_DB_NAME" || true
+        sudo -u postgres dropuser "$LAVA_DB_USER" || true
+    fi
     if [ ${LAVA_INSTANCE_OWNS_USER} = "yes" ]; then
         sudo userdel "$LAVA_SYS_USER" || true
     fi
@@ -1771,6 +1811,9 @@ Commands for working with instances:
     install - install LAVA instance
     upgrade - upgrade LAVA instance
     remove  - remove LAVA instance (undoes install)
+    installworker - install a remote worker node
+    upgradeworker - upgrade remote worker node
+    removeworker - remove remote worker node
     toggle  - toggle one LAVA instance between being
             - referenced by the location (aka
               insance name) or by the vhost
@@ -1869,6 +1912,10 @@ main() {
             ;;
         install|upgrade|remove|preview)
             cmd_$cmd "$@" # 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
+            ;;
+        installworker|upgradeworker|removeworker)
+            export LAVA_INSTALL_STEPS=$LAVA_WORKER_STEPS
+            cmd_${cmd/worker/} "$@"
             ;;
         manage)
             cmd_manage "$@"
