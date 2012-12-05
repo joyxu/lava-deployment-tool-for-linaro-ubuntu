@@ -25,13 +25,13 @@ LAVA_UWSGI=1.0.3
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=23
 # Current required version of instance config
-REQUIRED_LAVA_CONFIG_VERSION=1
+REQUIRED_LAVA_CONFIG_VERSION=2
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
-LAVA_INSTALL_STEPS="user fs buildout database broker web_hosting app config_app"
+LAVA_INSTALL_STEPS="devmode user fs buildout database broker web_hosting app config_app"
 
 # Will cause Django to be run with DEBUG enabled.
 LAVA_DEV_MODE=no
@@ -99,6 +99,11 @@ evolve_config_0_1() {
     LAVA_CONFIG_VERSION=1
 }
 
+evolve_config_1_2() {
+    LAVA_CONFIG_VERSION=2
+    LAVA_INSTANCE_OWNS_USER=yes
+}
+
 
 _load_configuration() {
     LAVA_INSTANCE=$1
@@ -153,6 +158,7 @@ LAVA_MANIFEST_BRANCH='$LAVA_MANIFEST_BRANCH'
 LAVA_BUILDOUT_CFG='$LAVA_BUILDOUT_CFG'
 # System configuration (Unix-level)
 LAVA_SYS_USER='$LAVA_SYS_USER'
+LAVA_INSTANCE_OWNS_USER='$LAVA_INSTANCE_OWNS_USER'
 # Apache configuration
 LAVA_APACHE_VHOST='$LAVA_APACHE_VHOST'
 LAVA_DEV_MODE='$LAVA_DEV_MODE'
@@ -182,11 +188,7 @@ _configure() {
     set +x
     export LAVA_INSTANCE="$1"
     export LAVA_CONFIG_VERSION="$REQUIRED_LAVA_CONFIG_VERSION"
-    # Defaults
-    for install_step in $LAVA_INSTALL_STEPS; do
-        defaults_$install_step
-    done
-    # Wizard loop
+    # Defaults + Wizard loop
     while true; do
         echo "Instance Configuration"
         echo "----------------------"
@@ -194,8 +196,8 @@ _configure() {
         echo "Before configuring your instance we need to ask you a few questions"
         echo "The defaults are safe so feel free to use them without any changes"
         # Wizard page loop
-        num_steps=1
         for install_step in $LAVA_INSTALL_STEPS; do
+            defaults_$install_step
             while true; do
                 echo
                 echo "Note: it is safe to CTRL-C at this stage!"
@@ -241,8 +243,58 @@ _install() {
 }
 
 
+defaults_devmode () {
+    # set elsewhere
+    export LAVA_DEV_MODE
+}
+
+wizard_devmode () {
+    echo
+    echo "Developer mode"
+    echo "^^^^^^^^^^^^^^"
+    echo
+    echo "By default lava-deployment-tool creates an instance suited"
+    echo "to a production deployment.  Enabling developer mode changes"
+    echo "a few things:"
+    echo
+    echo "1) Django runs in DEBUG mode"
+    echo "2) LAVA_BUILDOUT_CFG defaults to buildout-development.cfg,"
+    echo "   which installs some development/testing related packages"
+    echo "3) Arranges for the instance to run as the user invoking"
+    echo "   lava-deployment-tool rather than an instance-specific"
+    echo "   system user."
+    echo
+    echo "Developer mode: $LAVA_DEV_MODE"
+    echo
+    echo "next    - continue"
+    echo "dev     - toggle developer mode"
+
+    _read_input "Please decide what to do [next]: " RESPONSE next
+
+    case "$RESPONSE" in
+        next)
+            return 0  # loop complete
+            ;;
+        dev)
+            if [ $LAVA_DEV_MODE = yes ]; then
+                LAVA_DEV_MODE=no
+            else
+                LAVA_DEV_MODE=yes
+            fi
+            return 1
+            ;;
+    esac
+    return 1  # another loop please
+}
+
 defaults_user() {
-    export LAVA_SYS_USER=lava-$LAVA_INSTANCE
+    if [ $LAVA_DEV_MODE = "yes" ]; then
+        export LAVA_SYS_USER=$(whoami)
+        export LAVA_INSTANCE_OWNS_USER=no
+    else
+        export LAVA_SYS_USER=lava-$LAVA_INSTANCE
+        export LAVA_INSTANCE_OWNS_USER=yes
+    fi
 }
 
 
@@ -273,6 +325,11 @@ wizard_user() {
             if test -n "$LAVA_SYS_USER_NEW" && echo "$LAVA_SYS_USER_NEW" | grep -q -E -e '[a-z]+[-a-z0-9]*'; then
                 echo "New user name is '$LAVA_SYS_USER_NEW'"
                 LAVA_SYS_USER="$LAVA_SYS_USER_NEW" 
+                if [ "$LAVA_SYS_USER" != "$(whoami)"]; then
+                    export LAVA_INSTANCE_OWNS_USER=yes
+                else
+                    export LAVA_INSTANCE_OWNS_USER=no
+                fi
             else
                 echo "Incorrect user name. It must be a simple ascii identifier"
             fi
@@ -283,9 +340,11 @@ wizard_user() {
 
 
 install_user() {
-    logger "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
-    echo "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
-    sudo useradd --system --comment "$LAVA_SYS_USER_DESC" "$LAVA_SYS_USER"
+    if [ "$LAVA_SYS_USER" != "$(whoami)"]; then
+        logger "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
+        echo "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
+        sudo useradd --system --comment "$LAVA_SYS_USER_DESC" "$LAVA_SYS_USER"
+    fi
 }
 
 
@@ -546,31 +605,15 @@ wizard_web_hosting() {
     echo "We will use Apache 2 to serve static application files"
     echo "Apache will also use mod uWSGI to talk to the application"
     echo "servers running LAVA code"
-    echo
-    echo "Normally we use django-seatbelt to prevent importing code"
-    echo "from outside of each instance (for isolation and reliability)"
-    echo "but this may be annoying when you do development and have"
-    echo "some code in your \$HOME directory."
-    echo
-    echo "Developer mode: $LAVA_DEV_MODE"
+    echo "(this is just a notification, it is not configurable)"
     echo
     echo "next    - continue"
-    echo "dev     - toggle developer mode"
 
     _read_input "Please decide what to do [next]: " RESPONSE next
 
     case "$RESPONSE" in
         next)
             return 0  # loop complete
-            ;;
-        dev)
-            if [ $LAVA_DEV_MODE = yes ]; then
-                LAVA_DEV_MODE=no
-            else
-                LAVA_DEV_MODE=yes
-            fi
-            return 1
-            ;;
     esac
     return 1  # another loop please
 }
@@ -847,7 +890,7 @@ gen_lava_dispatcher_config() {
 
     echo "Creating lava-dispatcher config file $LAVA_DISPATCHER_CONFIG_FILE"
     cat >$LAVA_DISPATCHER_CONFIG_FILE <<LAVA_DISPATCHER_CONF
-# This file was automatically generated by lava-deployment-tool.sh
+# This file was automatically generated by lava-deployment-tool
 
 LAVA_SERVER_IP = $LAVA_SERVER_IP
 
@@ -1434,7 +1477,9 @@ cmd_remove() {
     echo "There is no automatic backup, there is no way to undo this step"
     echo "*** WARNING ***" 
 
-    echo "We will remove system user $LAVA_SYS_USER"
+    if [ ${LAVA_INSTANCE_OWNS_USER} = "yes" ]; then
+        echo "We will remove system user $LAVA_SYS_USER"
+    fi
     echo "We will remove PostgreSQL database $LAVA_DB_NAME"
     echo "We will remove PostgreSQL user: $LAVA_DB_USER"
     echo "We will remove everything in $LAVA_PREFIX/$LAVA_INSTANCE"
@@ -1458,7 +1503,9 @@ cmd_remove() {
     sudo -u postgres dropuser "$LAVA_DB_USER" || true
     sudo rabbitmqctl delete_user "$LAVA_RABBIT_USER" || true
     sudo rabbitmqctl delete_vhost "$LAVA_RABBIT_VHOST" || true
-    sudo userdel "$LAVA_SYS_USER" || true
+    if [ ${LAVA_INSTANCE_OWNS_USER} = "yes" ]; then
+        sudo userdel "$LAVA_SYS_USER" || true
+    fi
     sudo rm -rf "$LAVA_PREFIX/$LAVA_INSTANCE" || true
     set +x
     set +e
