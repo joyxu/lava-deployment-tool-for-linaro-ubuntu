@@ -23,7 +23,7 @@ LAVA_PYTHON=python2.6
 LAVA_UWSGI=1.0.3
 
 # Current version of setup required by lava (global state)
-export LAVA_SETUP_REQUIRED_VERSION=23
+export LAVA_SETUP_REQUIRED_VERSION=24
 # Current required version of instance config
 REQUIRED_LAVA_CONFIG_VERSION=2
 
@@ -105,6 +105,30 @@ evolve_config_1_2() {
     LAVA_INSTANCE_OWNS_USER=yes
 }
 
+evolve_config_2_3() {
+    # NOTE version 2->3 evolution was the introduction of the remote "worker"
+    # concept. The main thing here was the new dependency of the master node
+    # to allow for sshfs mounts from workers
+
+    while true; do
+        echo "This version of LAVA no longer requires celery and rabbitmq. If"
+        echo "this is the only instance on this system its safe to uninstall"
+        echo "uninstall these components. Leaving them installed is harmless."
+        _read_input "Uninstall rabbit? (yes|no) [yes]: " RESPONSE yes
+        case "$RESPONSE" in
+            yes|no)
+                break
+                ;;
+        esac
+    done
+    if [ "$RESPONSE" = "yes" ]; then
+        sudo apt-get remove rabbitmq-server
+        sudo rm -f /etc/init/lava-instance-celery*
+    fi
+
+    _ssh_install
+    LAVA_CONFIG_VERSION=3
+}
 
 _load_configuration() {
     LAVA_INSTANCE=$1
