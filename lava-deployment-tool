@@ -235,7 +235,7 @@ _configure() {
 
 
 _install() {
-    for install_step in $LAVA_INSTALL_STEPS; do 
+    for install_step in $LAVA_INSTALL_STEPS; do
         echo "Running installation step $install_step"
         install_$install_step
     done
@@ -324,7 +324,7 @@ wizard_user() {
             _read_input "New user name: " LAVA_SYS_USER_NEW
             if test -n "$LAVA_SYS_USER_NEW" && echo "$LAVA_SYS_USER_NEW" | grep -q -E -e '[a-z]+[-a-z0-9]*'; then
                 echo "New user name is '$LAVA_SYS_USER_NEW'"
-                LAVA_SYS_USER="$LAVA_SYS_USER_NEW" 
+                LAVA_SYS_USER="$LAVA_SYS_USER_NEW"
                 if [ "$LAVA_SYS_USER" != "$(whoami)"]; then
                     export LAVA_INSTANCE_OWNS_USER=yes
                 else
@@ -386,7 +386,7 @@ install_fs() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d
     # Apache site:
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/sites-available
-    # Dispatcher configuration 
+    # Dispatcher configuration
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-dispatcher
     # Dashboard reports
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/reports
@@ -401,7 +401,7 @@ install_fs() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images
     # Repository of precious user-generated data (needs backup)
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media
-    # Celery state 
+    # Celery state
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-celery
     # Log files
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/log
@@ -414,7 +414,7 @@ install_fs() {
     bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
 
-    # Allow apache (running as www-data) to read our public web files 
+    # Allow apache (running as www-data) to read our public web files
     sudo chgrp -R www-data $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/
     sudo chmod -R g+rXs $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/
     # Allow instance user to read all lava-server settings
@@ -425,7 +425,7 @@ install_fs() {
     sudo chmod -R g+rwXs $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
     # Prevent anyone else from reading from the media directory
     sudo chmod -R o-rX $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
-    # Allow instance to store lava-celery state 
+    # Allow instance to store lava-celery state
     sudo chgrp -R $LAVA_SYS_USER $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-celery/
     sudo chmod -R g+rwXs $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-celery/
     # Allow instance user to put stuff in runtime directory
@@ -620,7 +620,7 @@ wizard_web_hosting() {
 
 generate_conf_d_file(){
     # Create apache2 instance configuration for single IP machine
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/ 
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/
     cat >$LAVA_PREFIX/$LAVA_INSTANCE/etc/apache2/conf.d/${LAVA_INSTANCE}.conf <<INSTANCE_FOR_SINGLE_IP
 
 # set the static files directory for this instance
@@ -679,7 +679,7 @@ install_web_hosting() {
         SetHandler      none
     </Location>
     # We don't need media files as those are private in our implementation
- 
+
     # images folder for lava-dispatcher tarballs
     <Location /images>
         SetHandler      none
@@ -1240,7 +1240,7 @@ kill timeout 360
 
 kill signal SIGTERM
 
-# Run celery daemon 
+# Run celery daemon
 script
     . $LAVA_PREFIX/\$LAVA_INSTANCE/bin/activate
     . $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
@@ -1472,10 +1472,10 @@ cmd_remove() {
 
     _load_configuration "$LAVA_INSTANCE"
 
-    echo "*** WARNING ***" 
+    echo "*** WARNING ***"
     echo "You are about to IRREVERSIBLY DESTROY the instance $LAVA_INSTANCE"
     echo "There is no automatic backup, there is no way to undo this step"
-    echo "*** WARNING ***" 
+    echo "*** WARNING ***"
 
     if [ ${LAVA_INSTANCE_OWNS_USER} = "yes" ]; then
         echo "We will remove system user $LAVA_SYS_USER"
@@ -1494,7 +1494,7 @@ cmd_remove() {
 
     set -e
     set -x
-    # Remove everything 
+    # Remove everything
     sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true
     sudo rm -f "/etc/apache2/sites-available/$LAVA_INSTANCE.conf" || true
     sudo rm -f "/etc/apache2/sites-enabled/$LAVA_INSTANCE.conf" || true
@@ -1798,7 +1798,7 @@ toggle_instance() {
 
     if [ "x${TARGET}" = "xvhost" ]; then
         sudo rm /etc/apache2/conf.d/${LAVA_INSTANCE}.conf
-        sed -i "s/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\",/    \"MEDIA_URL\": \"\/media\/\",/" ${settings_file} 
+        sed -i "s/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\",/    \"MEDIA_URL\": \"\/media\/\",/" ${settings_file}
         sed -i "s/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/    \"STATIC_URL\": \"\/static\/\",/" ${settings_file}
         sed -i "s/    \"LOGIN_URL\": \"\/${LAVA_INSTANCE}\/accounts\/login\/\",/    \"LOGIN_URL\": \"\/accounts\/login\/\",/" ${settings_file}
         sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/    \"LOGIN_REDIRECT_URL\": \"\/\",/" ${settings_file}
@@ -1812,14 +1812,14 @@ toggle_instance() {
         if [ \! -e "${single_conf}" ];then
             generate_conf_d_file
         fi
-        
+
         sudo a2dissite $LAVA_INSTANCE.conf
         if [ "`ls -A /etc/apache2/sites-enabled/`" = "" ]; then
             sudo a2ensite 000-default
         fi
 
         sudo ln -s ${single_conf} /etc/apache2/conf.d/${LAVA_INSTANCE}.conf
-        sed -i "s/    \"MEDIA_URL\": \"\/media\/\",/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\"\,/" ${settings_file} 
+        sed -i "s/    \"MEDIA_URL\": \"\/media\/\",/    \"MEDIA_URL\": \"\/${LAVA_INSTANCE}-media\/\"\,/" ${settings_file}
         sed -i "s/    \"STATIC_URL\": \"\/static\/\",/    \"STATIC_URL\": \"\/${LAVA_INSTANCE}-static\/\",/" ${settings_file}
         sed -i "s/    \"LOGIN_URL\": \"\/accounts\/login\/\",/    \"LOGIN_URL\": \"\/${LAVA_INSTANCE}\/accounts\/login\/\",/" ${settings_file}
         sed -i "s/    \"LOGIN_REDIRECT_URL\": \"\/\",/    \"LOGIN_REDIRECT_URL\": \"\/${LAVA_INSTANCE}\",/" ${settings_file}
@@ -1836,7 +1836,7 @@ cmd_toggle(){
     LAVA_INSTANCE=$1
     TARGET=${2:vhost}
     _banner
-    
+
     toggle_instance ${LAVA_INSTANCE} ${TARGET}
     if [ $? -eq 0 ]; then
         sudo service apache2 restart
@@ -1848,7 +1848,7 @@ cmd_toggle_all(){
     TARGET=${1:vhost}
 
     _banner
-   
+
     if [ "X${TARGET}" != "Xvhost"  -a  "X${TARGET}" != "Xlocation" ]; then
         echo 'Please specify the target with "vhost" or "location"'
         return 1
@@ -1945,7 +1945,7 @@ main() {
         echo "https://bugs.launchpad.net/lava-deployment-tool/+filebug"
         echo
         echo "Please provide the following information"
-        echo 
+        echo
         lsb_release -a
         exit 1
     fi
