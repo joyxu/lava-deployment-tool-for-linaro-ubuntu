@@ -32,7 +32,7 @@ export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
 LAVA_INSTALL_STEPS="devmode user fs buildout database web_hosting app config_app"
-LAVA_WORKER_STEPS="devmode user fs buildout remote_database web_hosting app config_app"
+LAVA_WORKER_STEPS="devmode user fs buildout remote_database web_hosting app config_app remote_fs"
 
 # Will cause Django to be run with DEBUG enabled.
 LAVA_DEV_MODE=no
@@ -49,19 +49,19 @@ os_check() {
                     # FIXME: Lucid is not supported
                     export LAVA_SUPPORTED=0
                     # Required system packages
-                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql mercurial conmux linaro-image-tools"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git-core build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql mercurial conmux linaro-image-tools sshfs"
                     ;;
                 oneiric|precise)
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql mercurial conmux linaro-image-tools unzip bzr"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-dev postgresql mercurial conmux linaro-image-tools unzip bzr sshfs"
                     ;;
                 quantal)
                     #apache2-dev is no longer available. use apache2-threaded-dev instead.
                     #see http://changelogs.ubuntu.com/changelogs/pool/main/a/apache2/apache2_2.2.22-6ubuntu2/changelog
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
-                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-threaded-dev postgresql mercurial conmux linaro-image-tools unzip bzr"
+                    LAVA_PKG_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev apache2 apache2-threaded-dev postgresql mercurial conmux linaro-image-tools unzip bzr sshfs"
                     ;;
             esac
             ;;
@@ -337,7 +337,10 @@ install_user() {
     if [ "$LAVA_SYS_USER" != "$(whoami)"]; then
         logger "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
         echo "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
-        sudo useradd --system --comment "$LAVA_SYS_USER_DESC" "$LAVA_SYS_USER"
+        # The user created must be a member of the "fuse" group, because the
+        # fuse mount we do includes "-o root_allow" since the dispatcher runs
+        # as root
+        sudo useradd -d $LAVA_PREFIX/$LAVA_INSTANCE/home -G fuse --system --comment "$LAVA_SYS_USER_DESC" "$LAVA_SYS_USER"
     fi
 }
 
@@ -371,6 +374,25 @@ wizard_fs() {
     return 1  # another loop please
 }
 
+_ssh_install() {
+    sshdir=$LAVA_PREFIX/$LAVA_INSTANCE/home/.ssh
+    sudo mkdir -p $sshdir
+    sudo chown -R $LAVA_SYS_USER $sshdir/..
+    logger "Creating ssh key for $LAVA_SYS_USER"
+    sudo -u $LAVA_SYS_USER ssh-keygen -C "ssh key used by LAVA for sshfs" -f $sshdir/id_rsa -t rsa -N ""
+
+    if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
+        # we don't want anything under media since this will get mounted
+        sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/*
+    else
+        # this file will allow worker nodes to check if the directory is
+        # properly mounted or not
+        sudo touch $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/.mounted
+
+        # ensure lava-logs is group writeable for new sshfs workers
+        sudo chmod g+w $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
+    fi
+}
 
 install_fs() {
     logger "Creating filesystem structure for LAVA instance $LAVA_INSTANCE"
@@ -393,7 +415,9 @@ install_fs() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/lava-dispatcher
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images
     # Repository of precious user-generated data (needs backup)
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media
+    # we include the creation of "lava-logs" as well. Otherwise this gets
+    # created automatically by lava code as root and without g+w permissions
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
     # Log files
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/log
     # Sockets and other runtime stuff
@@ -428,8 +452,98 @@ install_fs() {
     # Set the sticky and setgid bits there
     sudo chgrp -R $LAVA_SYS_USER $LAVA_PREFIX/$LAVA_INSTANCE/tmp
     sudo chmod -R g+rwtXs $LAVA_PREFIX/$LAVA_INSTANCE/tmp
+
+    _ssh_install
 }
 
+defaults_remote_fs() {
+    true
+}
+
+
+wizard_remote_fs() {
+    echo
+    echo "Remote filesystem configuration"
+    echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    echo
+    echo "The remote worker needs write access to the 'media' directory on"
+    echo "the master LAVA node so that dispatcher logs will be visible. This"
+    echo "is managed by configuring sshfs to mount the master's media directory"
+    echo
+
+    LAVA_REMOTE_FS_HOST=$LAVA_DB_SERVER
+    LAVA_REMOTE_FS_USER=$LAVA_DB_USER
+    LAVA_REMOTE_FS_DIR=/srv/lava/instances/${LAVA_DB_USER/lava-/}
+
+    echo "Master Instance Host:        '$LAVA_REMOTE_FS_HOST'"
+    echo "Master Instance User:        '$LAVA_REMOTE_FS_USER'"
+    echo "Master Instance Directory:   '$LAVA_REMOTE_FS_DIR'"
+    echo
+    echo "next   - Use the master information as is"
+    echo "edit   - Edit the master information"
+
+    _read_input "Please please decide what to do [next]: " RESPONSE next
+
+    case "$RESPONSE" in
+        next)
+            return 0  # loop complete
+            ;;
+        edit)
+            _read_input "Please enter the master host/IP: " LAVA_REMOTE_FS_HOST
+            _read_input "Please enter the master user name: " LAVA_REMOTE_FS_USER
+            _read_input "Please enter the master's instance directory: " LAVA_REMOTE_FS_DIR
+            ;;
+    esac
+    return 1  # another loop please
+
+}
+
+
+install_remote_fs() {
+    echo "Configuring remote fileystem access $LAVA_INSTANCE"
+
+    if ! sudo grep ^user_allow_other /etc/fuse.conf >/dev/null ; then
+        logger "Updating /etc/fuse.conf to enable 'allow_root' mounts"
+        sudo sh -c "cat >>/etc/fuse.conf" <<EOF
+# enabled for LAVA: required so root can access sshfs directories
+user_allow_other
+EOF
+    fi
+
+    echo "Please add the following public key into your master node's "
+    echo " $LAVA_REMOTE_FS_DIR/home/.ssh/authorized_keys file"
+    cat $LAVA_PREFIX/$LAVA_INSTANCE/home/.ssh/id_rsa.pub
+    echo
+
+    _read_input "Type next to continue: " RESPONSE next
+
+    echo "Creating sshfs mount script for this instance"
+    mntscript=$LAVA_PREFIX/$LAVA_INSTANCE/bin/mount-masterfs
+    sudo sh -c "cat >$mntscript" <<EOF
+#!/bin/sh
+
+LOCAL_USER=$LAVA_SYS_USER
+LOCAL_DIR=$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media
+
+REMOTE_USER=$LAVA_REMOTE_FS_USER
+REMOTE_HOST=$LAVA_REMOTE_FS_HOST
+REMOTE_DIR=$LAVA_REMOTE_FS_DIR/var/lib/lava-server/media
+
+if [ -f $LOCAL_DIR/.mounted ] ; then
+    if [ "$1" != "--force" ] ; then
+        exit 0
+    fi
+fi
+
+sudo umount \$LOCAL_DIR
+sudo -u \$LOCAL_USER sshfs -o allow_root -o reconnect \$REMOTE_USER@\$REMOTE_HOST:\$REMOTE_DIR \$LOCAL_DIR
+EOF
+
+    sudo chmod +x $mntscript
+
+    echo "Adding master server to known_hosts"
+    ssh-keyscan -H $LAVA_REMOTE_FS_HOST | sudo -u $LAVA_SYS_USER tee $LAVA_PREFIX/$LAVA_INSTANCE/home/.ssh/known_hosts
+}
 
 defaults_buildout () {
     true
@@ -912,6 +1026,13 @@ install_config_app() {
         _save_config
     fi
 
+    if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
+        echo "Remote worker install skipping database migrations and static files"
+        # Get out of virtualenv
+        deactivate
+	return
+    fi
+
     echo "Building cache of static files..."
     set -x
     rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
@@ -1220,6 +1341,12 @@ script
     export VIRTUAL_ENV=$LAVA_PREFIX/\$LAVA_INSTANCE
     export PATH=\$VIRTUAL_ENV/bin:\$PATH
     # Start LAVA scheduler, it runs as root in this release
+    if [ -f $LAVA_PREFIX/\$LAVA_INSTANCE/bin/mount-masterfs ] ; then
+        if ! $LAVA_PREFIX/\$LAVA_INSTANCE/bin/mount-masterfs ; then
+            logger "LAVA instance (\$LAVA_INSTANCE) failed to mount master filesystem"
+            exit 1
+        fi
+    fi
     exec $LAVA_PREFIX/\$LAVA_INSTANCE/bin/lava-server manage --instance-template=$LAVA_PREFIX/{instance}/etc/lava-server/{{filename}}.conf --instance=\$LAVA_INSTANCE scheduler --logfile=$LAVA_PREFIX/\$LAVA_INSTANCE/var/log/lava-scheduler.log --loglevel=info
 end script
 LAVA_CONF
