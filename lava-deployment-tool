@@ -358,7 +358,7 @@ wizard_user() {
 
 
 install_user() {
-    if [ "$LAVA_SYS_USER" != "$(whoami)"]; then
+    if [ "$LAVA_SYS_USER" != "$(whoami)" ] ; then
         logger "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
         echo "Creating system user for LAVA instance $LAVA_INSTANCE: $LAVA_SYS_USER"
         # The user created must be a member of the "fuse" group, because the
