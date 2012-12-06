@@ -403,7 +403,12 @@ _ssh_install() {
     sudo mkdir -p $sshdir
     sudo chown -R $LAVA_SYS_USER $sshdir/..
     logger "Creating ssh key for $LAVA_SYS_USER"
-    sudo -u $LAVA_SYS_USER ssh-keygen -C "ssh key used by LAVA for sshfs" -f $sshdir/id_rsa -t rsa -N ""
+
+    if [ -f $sshdir/id_rsa ] ; then
+        echo "Skipping creation of ssh key, one already exists"
+    else
+        sudo -u $LAVA_SYS_USER ssh-keygen -C "ssh key used by LAVA for sshfs" -f $sshdir/id_rsa -t rsa -N ""
+    fi
 
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
         # we don't want anything under media since this will get mounted
@@ -542,7 +547,11 @@ EOF
     _read_input "Type next to continue: " RESPONSE next
 
     echo "Creating sshfs mount script for this instance"
-    mntscript=$LAVA_PREFIX/$LAVA_INSTANCE/bin/mount-masterfs
+    # we use sbin because the bin directory is created by buildout. creating
+    # this script from buildout isn't that great of an option, so...
+    sbindir=$LAVA_PREFIX/$LAVA_INSTANCE/sbin
+    [ -d $sbindir ] || mkdir $sbindir
+    mntscript=$sbindir/mount-masterfs
     sudo sh -c "cat >$mntscript" <<EOF
 #!/bin/sh
 
@@ -1365,8 +1374,8 @@ script
     export VIRTUAL_ENV=$LAVA_PREFIX/\$LAVA_INSTANCE
     export PATH=\$VIRTUAL_ENV/bin:\$PATH
     # Start LAVA scheduler, it runs as root in this release
-    if [ -f $LAVA_PREFIX/\$LAVA_INSTANCE/bin/mount-masterfs ] ; then
-        if ! $LAVA_PREFIX/\$LAVA_INSTANCE/bin/mount-masterfs ; then
+    if [ -f $LAVA_PREFIX/\$LAVA_INSTANCE/sbin/mount-masterfs ] ; then
+        if ! $LAVA_PREFIX/\$LAVA_INSTANCE/sbin/mount-masterfs ; then
             logger "LAVA instance (\$LAVA_INSTANCE) failed to mount master filesystem"
             exit 1
         fi
