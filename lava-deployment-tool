@@ -400,7 +400,7 @@ wizard_fs() {
 
 _ssh_install() {
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
-        sshdir=$LAVA_PREFIX/$LAVA_INSTANCE/home/.ssh
+        sshdir=$(eval echo ~$LAVA_SYS_USER)/.ssh
         if [ -f $sshdir/id_rsa ] ; then
             echo "Skipping creation of ssh key, one already exists"
         else
@@ -539,7 +539,8 @@ EOF
 
     echo "Please add the following public key into your master node's "
     echo " $LAVA_REMOTE_FS_DIR/home/.ssh/authorized_keys file"
-    cat $LAVA_PREFIX/$LAVA_INSTANCE/home/.ssh/id_rsa.pub
+    sshdir=$(eval echo ~$LAVA_SYS_USER)/.ssh
+    cat $sshdir/id_rsa.pub
     echo
 
     _read_input "Type next to continue: " RESPONSE next
@@ -573,7 +574,8 @@ EOF
     sudo chmod +x $mntscript
 
     echo "Adding master server to known_hosts"
-    ssh-keyscan -H $LAVA_REMOTE_FS_HOST | sudo -u $LAVA_SYS_USER tee $LAVA_PREFIX/$LAVA_INSTANCE/home/.ssh/known_hosts
+    sshdir=$(eval echo ~$LAVA_SYS_USER)/.ssh
+    ssh-keyscan -H $LAVA_REMOTE_FS_HOST | sudo -u $LAVA_SYS_USER tee $sshdir/known_hosts
 }
 
 defaults_buildout () {
