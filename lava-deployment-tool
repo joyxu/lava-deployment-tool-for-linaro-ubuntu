@@ -399,19 +399,17 @@ wizard_fs() {
 }
 
 _ssh_install() {
-    sshdir=$LAVA_PREFIX/$LAVA_INSTANCE/home/.ssh
-    sudo mkdir -p $sshdir
-    sudo chown -R $LAVA_SYS_USER $sshdir/..
-    logger "Creating ssh key for $LAVA_SYS_USER"
-
-    if [ -f $sshdir/id_rsa ] ; then
-        echo "Skipping creation of ssh key, one already exists"
-    else
-        sudo -u $LAVA_SYS_USER ssh-keygen -C "ssh key used by LAVA for sshfs" -f $sshdir/id_rsa -t rsa -N ""
-    fi
-
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
-        # we don't want anything under media since this will get mounted
+        sshdir=$LAVA_PREFIX/$LAVA_INSTANCE/home/.ssh
+        if [ -f $sshdir/id_rsa ] ; then
+            echo "Skipping creation of ssh key, one already exists"
+        else
+            sudo mkdir -p $sshdir
+            sudo chown -R $LAVA_SYS_USER $sshdir/..
+            sudo -u $LAVA_SYS_USER ssh-keygen -C "ssh key used by LAVA for sshfs" -f $sshdir/id_rsa -t rsa -N ""
+	fi
+
+	# we don't want anything under media since this will get mounted
         sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/*
     else
         # this file will allow worker nodes to check if the directory is
@@ -1575,6 +1573,10 @@ cmd_remove() {
     if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
         sudo -u postgres dropdb "$LAVA_DB_NAME" || true
         sudo -u postgres dropuser "$LAVA_DB_USER" || true
+    else
+        set +e
+        umount $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media
+	set -e
     fi
     if [ ${LAVA_INSTANCE_OWNS_USER} = "yes" ]; then
         sudo userdel "$LAVA_SYS_USER" || true
