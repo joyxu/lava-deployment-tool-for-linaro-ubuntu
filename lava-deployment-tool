@@ -1061,34 +1061,31 @@ install_config_app() {
 
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
         echo "Remote worker install skipping database migrations and static files"
-        # Get out of virtualenv
-        deactivate
-	return
+    else
+        echo "Building cache of static files..."
+        set -x
+        rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
+        lava-server manage \
+            build_static --noinput --link || die "Failed to update the cache of static content"
+        set +x
+
+        echo "Stopping instance for database changes..."
+        set -x
+        sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true # in case of upgrades
+        set +x
+
+        echo "Synchronizing database..."
+        set -x
+        lava-server manage \
+            syncdb --noinput || die "Failed to synchronize database (run non-migration db updates)"
+        set +x
+
+        echo "Running migrations..."
+        set -x
+        lava-server manage \
+            migrate --noinput || die "Failed to run database migrations"
+        set +x
     fi
-
-    echo "Building cache of static files..."
-    set -x
-    rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static
-    lava-server manage \
-        build_static --noinput --link || die "Failed to update the cache of static content"
-    set +x
-
-    echo "Stopping instance for database changes..."
-    set -x
-    sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true # in case of upgrades
-    set +x
-
-    echo "Synchronizing database..."
-    set -x
-    lava-server manage \
-        syncdb --noinput || die "Failed to synchronize database (run non-migration db updates)"
-    set +x
-
-    echo "Running migrations..."
-    set -x
-    lava-server manage \
-        migrate --noinput || die "Failed to run database migrations"
-    set +x
 
     # Get out of virtualenv
     deactivate
