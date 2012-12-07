@@ -407,9 +407,9 @@ _ssh_install() {
             sudo mkdir -p $sshdir
             sudo chown -R $LAVA_SYS_USER $sshdir/..
             sudo -u $LAVA_SYS_USER ssh-keygen -C "ssh key used by LAVA for sshfs" -f $sshdir/id_rsa -t rsa -N ""
-	fi
+        fi
 
-	# we don't want anything under media since this will get mounted
+        # we don't want anything under media since this will get mounted
         sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/*
     else
         # this file will allow worker nodes to check if the directory is
@@ -1578,7 +1578,7 @@ cmd_remove() {
     else
         set +e
         umount $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media
-	set -e
+        set -e
     fi
     if [ ${LAVA_INSTANCE_OWNS_USER} = "yes" ]; then
         sudo userdel "$LAVA_SYS_USER" || true
