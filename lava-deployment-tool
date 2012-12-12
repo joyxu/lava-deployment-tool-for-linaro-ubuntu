@@ -1670,6 +1670,10 @@ _restore_db_from_dump () {
         --port $dbport \
         --no-password \
         $dbname
+    sudo -u postgres createlang \
+        --port $dbport \
+        plpgsql \
+        $dbname || true
     sudo -u postgres pg_restore \
         --exit-on-error --no-owner \
         --port $dbport \
