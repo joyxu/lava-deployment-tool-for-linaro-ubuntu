@@ -25,7 +25,7 @@ LAVA_UWSGI=1.0.3
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=24
 # Current required version of instance config
-REQUIRED_LAVA_CONFIG_VERSION=2
+REQUIRED_LAVA_CONFIG_VERSION=4
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -128,6 +128,13 @@ evolve_config_2_3() {
 
     _ssh_install
     LAVA_CONFIG_VERSION=3
+}
+
+evolve_config_3_4() {
+    # Before version 3, LAVA_DB_PORT did not exist and the instance
+    # always connected to the default port.
+    LAVA_DB_PORT=
+    LAVA_CONFIG_VERSION=4
 }
 
 _load_configuration() {
@@ -605,6 +612,7 @@ install_buildout () {
 defaults_database() {
     export LAVA_DB_NAME="lava-$LAVA_INSTANCE"
     export LAVA_DB_USER="lava-$LAVA_INSTANCE"
+    export LAVA_DB_PORT=""
     export LAVA_DB_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
 }
 
@@ -619,10 +627,12 @@ wizard_database() {
     echo
     echo "Database name: $LAVA_DB_NAME"
     echo "Database user: $LAVA_DB_USER"
+    echo "Database port: $LAVA_DB_PORT"
     echo "     password: $LAVA_DB_PASSWORD (automatically generated)"
     echo
     echo "(this is just a notification, it is not configurable)"
     echo
+    echo "port    - specify a different port to connect to"
     echo "next    - continue"
 
     _read_input "Please decide what to do [next]: " RESPONSE next
@@ -630,6 +640,15 @@ wizard_database() {
     case "$RESPONSE" in
         next)
             return 0  # loop complete
+        port)
+           _read_input "New port: " LAVA_DB_PORT_NEW
+            if echo "$LAVA_DB_PORT_NEW" | grep -q -E -e '[a-z0-9]+'; then
+                echo "New port name is '$LAVA_DB_PORT_NEW'"
+                LAVA_DB_PORT="$LAVA_DB_PORT_NEW"
+            else
+                echo "Incorrect port. It must be empty or a decimal integer."
+            fi
+              ;;
     esac
     return 1  # another loop please
 }
@@ -646,7 +665,7 @@ dbpass='$LAVA_DB_PASSWORD'
 basepath=''
 dbname='$LAVA_DB_NAME'
 dbserver=''
-dbport=''
+dbport='$LAVA_DB_PORT'
 dbtype='pgsql'
 DEFAULT_DATABASE_CONF
 
@@ -659,12 +678,14 @@ DEFAULT_DATABASE_CONF
             --no-superuser \
             --no-createrole \
             --no-password \
+            --port $LAVA_DB_PORT \
             "$LAVA_DB_USER" \
             || die "Failed to create database user"
     fi
 
     # Set a password for our new user
     sudo -u postgres psql \
+        --port $LAVA_DB_PORT \
         --quiet \
         --command="ALTER USER \"$LAVA_DB_USER\" WITH PASSWORD '$LAVA_DB_PASSWORD'" \
         || die "Failed to set database password"
@@ -672,6 +693,7 @@ DEFAULT_DATABASE_CONF
     # Create a database for our new user, if it doesn't exist
     if ! sudo -u postgres psql -c "SELECT datname FROM pg_database WHERE datname='$LAVA_DB_NAME'" | grep "$LAVA_DB_NAME"; then
         sudo -u postgres createdb \
+            --port $LAVA_DB_PORT \
             --locale=en_US.UTF-8 \
             --encoding=UTF-8 \
             --owner="$LAVA_DB_USER" \
@@ -698,6 +720,7 @@ wizard_remote_database() {
     _read_input "Please enter the server name/IP: " LAVA_DB_SERVER
     _read_input "Please enter the database name: " LAVA_DB_NAME
     _read_input "Please enter the database user: " LAVA_DB_USER
+    _read_input "Please enter the database port (empty is OK): " LAVA_DB_PORT
     _read_input "Please enter the database password: " LAVA_DB_PASSWORD
 }
 
@@ -712,7 +735,7 @@ dbpass='$LAVA_DB_PASSWORD'
 basepath=''
 dbname='$LAVA_DB_NAME'
 dbserver='$LAVA_DB_SERVER'
-dbport=''
+dbport='$LAVA_DB_PORT'
 dbtype='pgsql'
 DEFAULT_DATABASE_CONF
 }
