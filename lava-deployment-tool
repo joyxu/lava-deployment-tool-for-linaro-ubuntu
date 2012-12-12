@@ -194,6 +194,7 @@ LAVA_DEV_MODE='$LAVA_DEV_MODE'
 # PostgreSQL configuration
 LAVA_DB_NAME='$LAVA_DB_NAME'
 LAVA_DB_USER='$LAVA_DB_USER'
+LAVA_DB_PORT='$LAVA_DB_PORT'
 LAVA_DB_PASSWORD='$LAVA_DB_PASSWORD'
 # Scheduler configuration
 LAVA_SCHEDULER_ENABLED='$LAVA_SCHEDULER_ENABLED'
@@ -640,6 +641,7 @@ wizard_database() {
     case "$RESPONSE" in
         next)
             return 0  # loop complete
+            ;;
         port)
            _read_input "New port: " LAVA_DB_PORT_NEW
             if echo "$LAVA_DB_PORT_NEW" | grep -q -E -e '[a-z0-9]+'; then
@@ -648,7 +650,7 @@ wizard_database() {
             else
                 echo "Incorrect port. It must be empty or a decimal integer."
             fi
-              ;;
+            ;;
     esac
     return 1  # another loop please
 }
