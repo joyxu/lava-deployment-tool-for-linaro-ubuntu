@@ -165,8 +165,9 @@ LAVA instances store persistent data in two locations:
 
  * On the filesystem, in the directory
    ``/srv/lava/$LAVA_INSTANCE/var/lib/lava-server/media``
- * In a PostgreSQL database in the default cluster named
-   ``lava-$LAVA_INSTANCE``
+
+ * In a PostgreSQL database named ``lava-$LAVA_INSTANCE`` in the
+   cluster listening on port $LAVA_DB_PORT.
 
 Backing up those two items is sufficient to preserve the entire system
 state.  You can do this by running::
@@ -322,17 +323,22 @@ An instance is composed of several parts:
  - A new system user account called lava-$LAVA_INSTANCE
  - A directory tree similar to standard unix filesystem rooted
    in $LAVA_PREFIX/$LAVA_INSTANCE/
- - A postgres user and database in the default cluster, both named
-   lava-$LAVA_INSTANCE
+ - A postgres user and database both named lava-$LAVA_INSTANCE in the
+   cluster that is listening on port $LAVA_DB_PORT (defaulting to 5432
+   if not specified, as is usual with postgres).
 
 A note on Postgres versions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-lava-deployment-tool creates its databases in the default postgres
-cluster (on Ubuntu this is the 'main' cluster of whichever version of
-postgres was installed first).  Using a different version/cluster and
-moving between versions is not technically difficult but not currently
-supported.
+By default lava-deployment-tool creates its databases in the default
+postgres cluster (on Ubuntu this is the 'main' cluster of whichever
+version of postgres was installed first).  Using a different
+version/cluster can be achieved by specifying a different value for
+LAVA_DB_PORT when prompted when creating an instance.
+
+Moving an instance between clusters is not currently supported (short
+of backing up one instance and restoring into another that has its db
+in a different cluster).
 
 Different kinds of deployment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
