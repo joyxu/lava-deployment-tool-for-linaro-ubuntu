@@ -36,6 +36,7 @@ echo RESTORE | "${ldt}" restore-db $LAVA_INSTANCE $LAVA_SNAPSHOT
 . "${inst}/instance.conf"
 export PGPASSWORD="$LAVA_DB_PASSWORD"
 export PGUSER="$LAVA_DB_USER"
+export PGPORT="${LAVA_DB_PORT:-5432}"
 
 psql () {
  echo '>' psql -h localhost -d "${LAVA_DB_NAME}" "$@"
