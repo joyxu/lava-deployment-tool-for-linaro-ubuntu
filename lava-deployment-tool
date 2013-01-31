@@ -1089,9 +1089,9 @@ install_config_app() {
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
         echo "Remote worker install skipping database migrations and static files"
 
-	echo "Stopping instance so changes can be picked up..."
+	echo "Restarting instance so changes can be picked up..."
         set -x
-        sudo stop lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true # in case of upgrades
+        sudo restart lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true # in case of upgrades
         set +x
     else
         echo "Building cache of static files..."
@@ -1122,15 +1122,15 @@ install_config_app() {
         lava-server manage \
             migrate --noinput || die "Failed to run database migrations"
         set +x
+
+    	echo "Starting instance again..."
+        set -x
+        sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
+        set +x
     fi
 
     # Get out of virtualenv
     deactivate
-
-    echo "Starting instance again..."
-    set -x
-    sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
-    set +x
 }
 
 
