@@ -24,7 +24,7 @@ LAVA_PYTHON=python2.6
 LAVA_UWSGI=1.0.3
 
 # Current version of setup required by lava (global state)
-export LAVA_SETUP_REQUIRED_VERSION=25
+export LAVA_SETUP_REQUIRED_VERSION=26
 # Current required version of instance config
 REQUIRED_LAVA_CONFIG_VERSION=4
 
@@ -140,11 +140,6 @@ evolve_config_3_4() {
 
 evolve_config_4_5() {
     # Version 5 instances have versiontools installed in the bootstrap-venv
-    pushd $LAVA_DOWNLOAD_CACHE/dist
-    ensure_downloaded_check_sha256 \
-        http://pypi.python.org/packages/source/v/versiontools/versiontools-1.9.1.tar.gz \
-        a969332887a18a9c98b0df0ea4d4ca75972f24ca94f06fb87d591377e83414f6
-    popd
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     "${venv}/bin/pip" install \
         $LAVA_DOWNLOAD_CACHE/dist/versiontools-1.9.1.tar.gz
