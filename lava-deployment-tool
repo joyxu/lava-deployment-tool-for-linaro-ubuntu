@@ -138,6 +138,19 @@ evolve_config_3_4() {
     LAVA_CONFIG_VERSION=4
 }
 
+evolve_config_4_5() {
+    # Version 5 instances have versiontools installed in the bootstrap-venv
+    pushd $LAVA_DOWNLOAD_CACHE/dist
+    ensure_downloaded_check_sha256 \
+        http://pypi.python.org/packages/source/v/versiontools/versiontools-1.9.1.tar.gz \
+        a969332887a18a9c98b0df0ea4d4ca75972f24ca94f06fb87d591377e83414f6
+    popd
+    local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
+    "${venv}/bin/pip" install \
+        $LAVA_DOWNLOAD_CACHE/dist/versiontools-1.9.1.tar.gz
+    LAVA_CONFIG_VERSION=5
+}
+
 _load_configuration() {
     LAVA_INSTANCE=$1
 
@@ -607,7 +620,8 @@ install_buildout () {
         $LAVA_DOWNLOAD_CACHE/dist/distribute-0.6.24.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/zc.buildout-1.5.2.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/uwsgi-$LAVA_UWSGI.tar.gz \
-        $LAVA_DOWNLOAD_CACHE/dist/bzr-2.5.1.tar.gz
+        $LAVA_DOWNLOAD_CACHE/dist/bzr-2.5.1.tar.gz \
+        $LAVA_DOWNLOAD_CACHE/dist/versiontools-1.9.1.tar.gz
     set +xe
 }
 
@@ -1212,6 +1226,9 @@ cmd_setup() {
         ensure_downloaded_check_sha256 \
             http://pypi.python.org/packages/source/z/zc.buildout/zc.buildout-1.5.2.tar.gz \
             0ac5a325d3ffbc5a988fb3ba87f4159d4769cc73e3331cb5234edc8839b6506b
+        ensure_downloaded_check_sha256 \
+            http://pypi.python.org/packages/source/v/versiontools/versiontools-1.9.1.tar.gz \
+            a969332887a18a9c98b0df0ea4d4ca75972f24ca94f06fb87d591377e83414f6
         popd
 
         set +x
