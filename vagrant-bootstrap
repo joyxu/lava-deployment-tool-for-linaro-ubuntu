@@ -23,10 +23,17 @@ basedir="$1"
 if test -z "$basedir"; then
   basedir=/vagrant
 fi
+if ! test -d /srv/lava/instances; then
+  (
+    cd $basedir
+    su vagrant -c './lava-deployment-tool setup -nd'
+  )
+fi
 if ! test -d /srv/lava/instances/development; then
-  cd $basedir
-  su vagrant -c './lava-deployment-tool setup -nd'
-  su vagrant -c './lava-deployment-tool install -nd development'
+  (
+    cd $basedir
+    su vagrant -c './lava-deployment-tool install -nd development'
+  )
 fi
 
 set +x
