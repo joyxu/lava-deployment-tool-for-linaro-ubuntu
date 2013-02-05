@@ -71,7 +71,9 @@ os_check() {
 
 
 uid_check() {
-    if [ $(id -u) = 0 ]; then
+    if [ "y${SKIP_ROOT_CHECK}" = "yyes" ] ; then
+        echo "skipping uid_check for root"
+    elif [ $(id -u) = 0 ]; then
         echo "Running as root is not supported"
         exit 1
     fi
@@ -1097,6 +1099,11 @@ install_config_app() {
 
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
         echo "Remote worker install skipping database migrations and static files"
+
+	echo "Restarting instance so changes can be picked up..."
+        set -x
+        sudo restart lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true # in case of upgrades
+        set +x
     else
         echo "Building cache of static files..."
         set -x
@@ -1126,15 +1133,15 @@ install_config_app() {
         lava-server manage \
             migrate --noinput || die "Failed to run database migrations"
         set +x
+
+    	echo "Starting instance again..."
+        set -x
+        sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
+        set +x
     fi
 
     # Get out of virtualenv
     deactivate
-
-    echo "Starting instance again..."
-    set -x
-    sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
-    set +x
 }
 
 
