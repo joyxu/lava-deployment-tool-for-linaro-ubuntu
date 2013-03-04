@@ -2141,7 +2141,7 @@ main() {
         backup)
             cmd_backup "$@"
             ;;
-        restore-*)
+        restore*)
             cmd_$cmd "$@"
             ;;
         install_*)
