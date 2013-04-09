@@ -956,7 +956,7 @@ SETTINGS_CONF
         ln -sfT "${LAVA_BUILDOUT_CFG}" "${code}/${cfg}"
     fi
     pushd $code
-    ${venv}/bin/buildout -c "${cfg}"
+    ${venv}/bin/buildout -n -c "${cfg}"
     popd
     set +ex
 
