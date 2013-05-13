@@ -1206,6 +1206,7 @@ cmd_setup() {
         echo "Creating LAVA filesystem in $LAVA_PREFIX"
         sudo mkdir -p $LAVA_PREFIX
         echo "Making $(whoami) the owner of that location"
+        sudo chown $(whoami):$(id -gn) $LAVA_ROOT
         sudo chown $(whoami):$(id -gn) $LAVA_PREFIX
 
         echo "Creating buildout caches"
