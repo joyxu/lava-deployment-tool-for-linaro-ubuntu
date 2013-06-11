@@ -564,7 +564,7 @@ wizard_remote_fs() {
             ;;
         edit)
             _read_input "Please enter the master host/IP [${LAVA_DB_SERVER}] :" LAVA_REMOTE_FS_HOST $LAVA_DB_SERVER
-            _read_input "Please enter the master user name [${LAVA_SYS_USER}] : " LAVA_DB_USER $LAVA_DB_USER
+            _read_input "Please enter the master user name [${LAVA_SYS_USER}] : " LAVA_REMOTE_FS_USER $LAVA_DB_USER
             _read_input "Please enter the master's instance directory [${LAVA_REMOTE_FS_DIR}] : " LAVA_REMOTE_FS_DIR $LAVA_REMOTE_FS_DIR
             ;;
     esac
