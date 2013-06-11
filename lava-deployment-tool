@@ -793,9 +793,6 @@ wizard_remote_database() {
     echo "We will use PostgreSQL to store application state"
     echo "(apart from files that are just files in your filesystem)"
     echo
-	echo $LAVA_MASTER
-	echo $LAVA_DB_NAME
-	echo $LAVA_DB_USER
 
     _read_input "Please enter the server name/IP: " LAVA_DB_SERVER $LAVA_MASTER
     _read_input "Please enter the database name: " LAVA_DB_NAME $LAVA_DB_NAME
