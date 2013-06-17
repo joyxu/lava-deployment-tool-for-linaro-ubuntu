@@ -33,13 +33,14 @@ export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
 LAVA_INSTALL_STEPS="devmode user fs buildout database web_hosting app config_app"
-LAVA_WORKER_STEPS="devmode user fs buildout remote_database web_hosting app config_app remote_fs"
+LAVA_WORKER_STEPS="get_master devmode user fs buildout remote_database web_hosting app config_app remote_fs"
 
 # Will cause Django to be run with DEBUG enabled.
 LAVA_DEV_MODE=no
 
 # If set to yes no questions will be asked and default values will be used
 LAVA_NON_INTERACTIVE=no
+LAVA_DB_CUSTOMPWD=no
 
 os_check() {
     case `lsb_release -i -s` in
@@ -279,6 +280,24 @@ _install() {
     echo "All installation is done"
 }
 
+defaults_get_master() {
+    true
+}
+
+wizard_get_master() {
+    echo
+    echo "LAVA Master Setup"
+    echo "^^^^^^^^^^^^^^^^^"
+    echo
+    echo "LAVA worker nodes need a master defined to configure the"
+    echo "database and sshfs connections"
+    echo
+    _read_input "Please enter the address of the master [${LAVA_MASTER}] :" LAVA_MASTER $LAVA_MASTER
+}
+
+install_get_master() {
+    true
+}
 
 defaults_devmode () {
     # set elsewhere
@@ -418,8 +437,8 @@ wizard_fs() {
 }
 
 _ssh_install() {
+    sshdir=$(eval echo ~$LAVA_SYS_USER)/.ssh
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
-        sshdir=$(eval echo ~$LAVA_SYS_USER)/.ssh
         if [ -f $sshdir/id_rsa ] ; then
             echo "Skipping creation of ssh key, one already exists"
         else
@@ -431,6 +450,13 @@ _ssh_install() {
         # we don't want anything under media since this will get mounted
         sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/*
     else
+	# Setup the ssh directories in case you want to point workers at this master
+	sudo mkdir -p $sshdir
+	sudo touch $sshdir/authorized_keys
+	sudo chown -R $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir/..
+	sudo chmod 700 $sshdir
+	sudo chmod 600 $sshdir/authorized_keys
+
         # this file will allow worker nodes to check if the directory is
         # properly mounted or not
         sudo touch $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/.mounted
@@ -503,7 +529,9 @@ install_fs() {
 }
 
 defaults_remote_fs() {
-    true
+    export LAVA_REMOTE_FS_DIR=/srv/lava/instances/${LAVA_INSTANCE}
+    export LAVA_REMOTE_FS_USER=${LAVA_SYS_USER}
+    export LAVA_REMOTE_FS_HOST=${LAVA_MASTER}
 }
 
 
@@ -517,9 +545,9 @@ wizard_remote_fs() {
     echo "is managed by configuring sshfs to mount the master's media directory"
     echo
 
-    LAVA_REMOTE_FS_HOST=${LAVA_REMOTE_FS_HOST-LAVA_DB_SERVER}
-    LAVA_REMOTE_FS_USER=${LAVA_REMOTE_FS_USER-LAVA_DB_USER}
-    LAVA_REMOTE_FS_DIR=${LAVA_REMOTE_FS_DIR-/srv/lava/instances/${LAVA_DB_USER/lava-/}}
+    LAVA_REMOTE_FS_HOST=${LAVA_MASTER}
+    LAVA_REMOTE_FS_USER=${LAVA_SYS_USER}
+    LAVA_REMOTE_FS_DIR=/srv/lava/instances/${LAVA_INSTANCE}
 
     echo "Master Instance Host:        '$LAVA_REMOTE_FS_HOST'"
     echo "Master Instance User:        '$LAVA_REMOTE_FS_USER'"
@@ -535,9 +563,9 @@ wizard_remote_fs() {
             return 0  # loop complete
             ;;
         edit)
-            _read_input "Please enter the master host/IP: " LAVA_REMOTE_FS_HOST
-            _read_input "Please enter the master user name: " LAVA_REMOTE_FS_USER
-            _read_input "Please enter the master's instance directory: " LAVA_REMOTE_FS_DIR
+            _read_input "Please enter the master host/IP [${LAVA_DB_SERVER}] :" LAVA_REMOTE_FS_HOST $LAVA_DB_SERVER
+            _read_input "Please enter the master user name [${LAVA_SYS_USER}] : " LAVA_REMOTE_FS_USER $LAVA_DB_USER
+            _read_input "Please enter the master's instance directory [${LAVA_REMOTE_FS_DIR}] : " LAVA_REMOTE_FS_DIR $LAVA_REMOTE_FS_DIR
             ;;
     esac
     return 1  # another loop please
@@ -556,10 +584,14 @@ user_allow_other
 EOF
     fi
 
+    
     echo "Please add the following public key into your master node's "
     echo " $LAVA_REMOTE_FS_DIR/home/.ssh/authorized_keys file"
+    echo 
     sshdir=$(eval echo ~$LAVA_SYS_USER)/.ssh
+    echo "-------- WORKER NODE PUBLIC KEY STARTS HERE --------"
     cat $sshdir/id_rsa.pub
+    echo "-------- WORKER NODE PUBLIC KEY ENDS HERE --------"
     echo
 
     _read_input "Type next to continue: " RESPONSE next
@@ -626,7 +658,13 @@ defaults_database() {
     export LAVA_DB_NAME="lava-$LAVA_INSTANCE"
     export LAVA_DB_USER="lava-$LAVA_INSTANCE"
     export LAVA_DB_PORT=""
-    export LAVA_DB_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
+    if [[ ! -z $LAVA_DB_PASSWORD ]]
+    then
+      export LAVA_DB_PASSWORD
+      LAVA_DB_CUSTOMPWD=yes
+    else
+      export LAVA_DB_PASSWORD=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | md5sum | cut -d ' ' -f 1)
+    fi
 }
 
 
@@ -641,7 +679,12 @@ wizard_database() {
     echo "Database name: $LAVA_DB_NAME"
     echo "Database user: $LAVA_DB_USER"
     echo "Database port: $LAVA_DB_PORT"
-    echo "     password: $LAVA_DB_PASSWORD (automatically generated)"
+    if [[ "$LAVA_DB_CUSTOMPWD" == "yes" ]]
+    then
+      echo "     password: $LAVA_DB_PASSWORD (set by user)"
+    else
+      echo "     password: $LAVA_DB_PASSWORD (automatically generated)"
+    fi
     echo
     echo "(this is just a notification, it is not configurable)"
     echo
@@ -716,10 +759,30 @@ DEFAULT_DATABASE_CONF
             "$LAVA_DB_NAME" \
             || die "Failed to create a database"
     fi
+
+    if [[ $LAVA_DB_ALLOWREMOTE == "yes" ]]
+    then
+      allow_remote_postgres
+    fi 
+}
+
+allow_remote_postgres() {
+    echo "Editing the postgres config files to allow remote connections"
+    for pgfile in `find /etc/postgresql -name postgresql.conf`
+    do
+        TMPFILE=`mktemp`
+        (cat $pgfile | grep -v listen_addresses; echo "listen_addresses = '*'") > $TMPFILE
+        cat $TMPFILE | sudo tee $pgfile > /dev/null
+    done 
+    for hbafile in `find /etc/postgresql -name pg_hba.conf`
+    do
+        echo "host	all	all	0.0.0.0/0	trust" | sudo tee -a $hbafile > /dev/null
+    done
+    sudo /etc/init.d/postgresql restart
 }
 
 defaults_remote_database() {
-    true
+    defaults_database
 }
 
 wizard_remote_database() {
@@ -731,11 +794,11 @@ wizard_remote_database() {
     echo "(apart from files that are just files in your filesystem)"
     echo
 
-    _read_input "Please enter the server name/IP: " LAVA_DB_SERVER
-    _read_input "Please enter the database name: " LAVA_DB_NAME
-    _read_input "Please enter the database user: " LAVA_DB_USER
-    _read_input "Please enter the database port (empty is OK): " LAVA_DB_PORT
-    _read_input "Please enter the database password: " LAVA_DB_PASSWORD
+    _read_input "Please enter the server name/IP: " LAVA_DB_SERVER $LAVA_MASTER
+    _read_input "Please enter the database name: " LAVA_DB_NAME $LAVA_DB_NAME
+    _read_input "Please enter the database user: " LAVA_DB_USER $LAVA_DB_USER
+    _read_input "Please enter the database port (empty is OK): " LAVA_DB_PORT 5432
+    _read_input "Please enter the database password: " LAVA_DB_PASSWORD $LAVA_DB_PASSWORD
 }
 
 install_remote_database()
