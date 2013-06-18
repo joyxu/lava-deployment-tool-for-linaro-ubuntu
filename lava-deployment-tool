@@ -490,6 +490,12 @@ install_fs() {
     # we include the creation of "lava-logs" as well. Otherwise this gets
     # created automatically by lava code as root and without g+w permissions
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
+    # Similar to the above, we need to create the job-output folder so that
+    # it also does not get created by lava as root.
+    # The chown is so that ubuntu >='raring' fuse mounts are writable. The
+    # allow_root option we use in the mount script is now useless.
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/job-output
+    chown $LAVA_SYS_USER:$LAVA_SYS_USER  $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/job-output
     # Log files
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/log
     # Sockets and other runtime stuff
