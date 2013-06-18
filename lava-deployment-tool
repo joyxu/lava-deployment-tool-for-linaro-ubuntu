@@ -450,19 +450,20 @@ _ssh_install() {
         # we don't want anything under media since this will get mounted
         sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/*
     else
-	# Setup the ssh directories in case you want to point workers at this master
-	sudo mkdir -p $sshdir
-	sudo touch $sshdir/authorized_keys
-	sudo chown -R $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir/..
-	sudo chmod 700 $sshdir
-	sudo chmod 600 $sshdir/authorized_keys
+	    # Setup the ssh directories in case you want to point workers at this master
+	    sudo mkdir -p $sshdir
+  	  sudo touch $sshdir/authorized_keys
+	    sudo chown -R $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir/..
+	    sudo chmod 700 $sshdir
+	    sudo chmod 600 $sshdir/authorized_keys
 
-        # this file will allow worker nodes to check if the directory is
-        # properly mounted or not
-        sudo touch $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/.mounted
+      # this file will allow worker nodes to check if the directory is
+      # properly mounted or not
+      sudo touch $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/.mounted
 
-        # ensure lava-logs is group writeable for new sshfs workers
-        sudo chmod g+w $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
+      # ensure lava-logs and job-output is group writeable for new sshfs workers
+      sudo chmod g+w $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
+      sudo chmod g+w $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/job-output
     fi
 }
 
@@ -492,10 +493,7 @@ install_fs() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
     # Similar to the above, we need to create the job-output folder so that
     # it also does not get created by lava as root.
-    # The chown is so that ubuntu >='raring' fuse mounts are writable. The
-    # allow_root option we use in the mount script is now useless.
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/job-output
-    chown $LAVA_SYS_USER:$LAVA_SYS_USER  $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/job-output
     # Log files
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/log
     # Sockets and other runtime stuff
