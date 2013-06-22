@@ -1166,8 +1166,7 @@ install_config_app() {
     
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
         echo "Remote worker install skipping database migrations and static files"
-
-	echo "Restarting instance so changes can be picked up..."
+        echo "Restarting instance so changes can be picked up..."
         set -x
         sudo restart lava-instance LAVA_INSTANCE=$LAVA_INSTANCE || true # in case of upgrades
         set +x
