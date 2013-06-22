@@ -450,12 +450,12 @@ _ssh_install() {
         # we don't want anything under media since this will get mounted
         sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/*
     else
-	    # Setup the ssh directories in case you want to point workers at this master
-	    sudo mkdir -p $sshdir
-  	  sudo touch $sshdir/authorized_keys
-	    sudo chown -R $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir/..
-	    sudo chmod 700 $sshdir
-	    sudo chmod 600 $sshdir/authorized_keys
+        # Setup the ssh directories in case you want to point workers at this master
+        sudo mkdir -p $sshdir
+        sudo touch $sshdir/authorized_keys
+        sudo chown -R $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir/..
+        sudo chmod 700 $sshdir
+        sudo chmod 600 $sshdir/authorized_keys
 
       # this file will allow worker nodes to check if the directory is
       # properly mounted or not
@@ -1163,7 +1163,7 @@ install_config_app() {
         export LAVA_SCHEDULER_ENABLED='yes'
         _save_config
     fi
-
+    
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
         echo "Remote worker install skipping database migrations and static files"
 
