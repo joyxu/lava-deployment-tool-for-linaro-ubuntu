@@ -52,6 +52,9 @@ development environments isolated from your main system.
 
 .. _Vagrant: http://vagrantup.com/
 
+Obtain Ubuntu Precise "base box"
+--------------------------------
+
 Once you have Vagrant installed, you will need an Ubuntu Precise virtual
 machine template (a "base box" in Vagrant terms), which can be obtained
 with::
@@ -61,7 +64,23 @@ with::
 The above step only needs to be done once. And the base box you get be
 reused for other Vagrant projects.
 
-Then you can bring a VM with LAVA installed up with a single command,
+Provide VM with access to host serial port (if needed)
+------------------------------------------------------
+
+If you will need access to a host serial port within VM, add
+the following ``config.vm.customize()`` line to ``Vagrantfile`` within
+the directory where you have ``lava-deployment-tool``::
+
+ config.vm.customize(["modifyvm", :id, "--uart1", "0x3F8", "4", "--uartmode1", "/dev/ttyUSB0"]) 
+
+ (Replace ``/dev/ttyUSB0`` with the appropriate host serial device)
+
+The host serial port will be made available as COM1 (/dev/ttyS0) within the VM.
+
+Bring up VM
+-----------
+
+Now, you can bring a VM with LAVA installed up with a single command,
 run from inside the directory where you have ``lava-deployment-tool``::
 
  $ vagrant up
