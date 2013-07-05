@@ -471,6 +471,7 @@ _ssh_install() {
 		then
 			echo "Creating an authorized_keys file, as it didn't exist"
 			sudo touch $sshdir/authorized_keys
+			sudo chown $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir/authorized_keys
 			sudo chmod 600 $sshdir/authorized_keys
 		fi
 
