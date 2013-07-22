@@ -441,6 +441,55 @@ Finally, 'upgrade' the instance to get it to use the new config file::
  $ ./lava-deployment-tool upgrade limited
 
 
+User authentication
+^^^^^^^^^^^^^^^^^^^
+
+LAVA frontend is developed using Django_ web application framework
+and user authentication and authorization is based on standard `Django
+auth subsystems`_. This means that it is fairly easy to integrate authentication
+against any source for which Django backend exists. Dicussed below are
+tested and supported authentication methods for LAVA.
+
+.. _Django: https://www.djangoproject.com/
+.. _`Django auth subsystems`: https://docs.djangoproject.com/en/dev/topics/auth/
+
+Launchpad.net OpenID + local user database
+------------------------------------------
+
+LAVA server by default is preconfigured to authenticate using
+Launchpad.net OpenID service. Additionally, local Django user accounts
+database is supported at the same time. Using Launchpad.net (registration
+is free) allows for quick start with LAVA bring-up and testing.
+
+As an alternative to external Launchpad.net accounts, local Django user
+database can be used. In this case, user accounts should be created by Django
+admin prior to use.
+
+Please note that by default, both Launchpad.net OpenID and local database are
+enabled, so any user with Launchpad.net account can login into your install.
+For production usage, you may want to disable OpenID, or set up groups and
+permissions for different users.
+
+Atlassian Crowd authentication
+------------------------------
+
+Atlassian Crowd is authentication hub often used in the enterprise. To install
+LAVA with Crowd support, run lava-deployment-tool as::
+
+ $ LAVA_BUILDOUT_CFG=buildout-production-crowd.cfg ./lava-deployment-tool install ...
+
+Then to actually enable and configure Crowd integration:
+
+ 1. ``sudo stop lava``
+
+ 2. Go to ``/srv/lava/instances/<deployment_name>/code/current/server_code/settings/``.
+
+ 3. Search ``common.py`` for "crowd" and follow comments to enable and configure Crowd auth.
+
+ 4. ``sudo start lava``
+
+ 5. Try to login, watch ``/srv/lava/instances/<deployment_name>/var/log/lava-uwsgi.log`` for errors.
+
 Contact and bug reports
 ^^^^^^^^^^^^^^^^^^^^^^^
 
