@@ -470,6 +470,21 @@ enabled, so any user with Launchpad.net account can login into your install.
 For production usage, you may want to disable OpenID, or set up groups and
 permissions for different users.
 
+Arbitrary OpenID + local user database
+------------------------------------------
+
+Instead of using Launchpad.net as SSO (Single Sign-On) authenticator, login
+with arbitrary OpenID can be supported. For this, OPENID_SSO_SERVER_URL
+setting in ``/srv/lava/instances/<deployment_name>/code/current/server_code/settings/common.py``
+should be commented and LAVA instance restarted (``sudo stop lava``).
+
+Alternatively, OPENID_SSO_SERVER_URL can be set to point to another OpenID
+server with support for "OpenID 2.0 identifier select mode" to support
+SSO within your orginization. See `django-openid-auth documentation`_ for
+more information.
+
+.. _`django-openid-auth documentation`: http://bazaar.launchpad.net/~django-openid-auth/django-openid-auth/trunk/files
+
 Atlassian Crowd authentication
 ------------------------------
 
