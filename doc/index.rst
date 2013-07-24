@@ -476,7 +476,7 @@ Arbitrary OpenID + local user database
 Instead of using Launchpad.net as SSO (Single Sign-On) authenticator, login
 with arbitrary OpenID can be supported. For this, OPENID_SSO_SERVER_URL
 setting in ``/srv/lava/instances/<deployment_name>/code/current/server_code/settings/common.py``
-should be commented and LAVA instance restarted (``sudo stop lava``).
+should be commented and LAVA instance restarted (``sudo restart lava``).
 
 Alternatively, OPENID_SSO_SERVER_URL can be set to point to another OpenID
 server with support for "OpenID 2.0 identifier select mode" to support
