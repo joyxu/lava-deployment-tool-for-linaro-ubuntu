@@ -497,13 +497,23 @@ Then to actually enable and configure Crowd integration:
 
  1. ``sudo stop lava``
 
- 2. Go to ``/srv/lava/instances/<deployment_name>/code/current/server_code/settings/``.
+ 2. Go to ``/srv/lava/instances/<instance>/etc/lava-server/``.
 
- 3. Search ``common.py`` for "crowd" and follow comments to enable and configure Crowd auth.
+ 3. To settings.conf, add ``"AUTH_CROWD_SERVER_REST_URI"`` key with Crowd REST API URL.
+    Follow JSON syntax, pay attention to punctuation.
 
- 4. ``sudo start lava``
+ 4. In the same directory, create file ``crowd.conf`` with the content::
 
- 5. Try to login, watch ``/srv/lava/instances/<deployment_name>/var/log/lava-uwsgi.log`` for errors.
+     AUTH_CROWD_APPLICATION_USER='<appuser>'
+     AUTH_CROWD_APPLICATION_PASSWORD='<apppasswd>'
+
+    Replace content in angle brackets with your Crowd Application login/password. This
+    file is in shell-compatible syntax, you should not use spaces around equal sign and
+    additionally should use single quotes.
+
+ 5. ``sudo start lava``
+
+ 6. Try to login, watch ``/srv/lava/instances/<deployment_name>/var/log/lava-uwsgi.log`` for errors.
 
 Contact and bug reports
 ^^^^^^^^^^^^^^^^^^^^^^^
