@@ -1578,7 +1578,7 @@ cmd_install() {
     fi
 
     if [ -z "$LAVA_REVNO" ]; then
-        echo -n "Determining revno to deploy... "
+        echo -n "Determining manifest revno to deploy... "
         LAVA_REVNO="$(bzr revno $LAVA_MANIFEST_BRANCH)"
         echo $LAVA_REVNO
     fi
@@ -1611,7 +1611,7 @@ cmd_upgrade() {
     _load_configuration "$LAVA_INSTANCE"
 
     if [ -z "$LAVA_REVNO" ]; then
-        echo -n "Determining revno to deploy... "
+        echo -n "Determining manifest revno to deploy... "
         LAVA_REVNO="$(bzr revno $LAVA_MANIFEST_BRANCH)"
         echo $LAVA_REVNO
     fi
