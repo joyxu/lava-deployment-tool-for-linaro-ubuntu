@@ -1,5 +1,5 @@
 LAVA Deployment Tool
-====================
+********************
 
 LAVA Deployment Tool is meant to assist you setting up LAVA on your machine.
 The tool is suitable for both personal and more "production" installations that
@@ -22,7 +22,7 @@ checkout as follows (install bzr if it is not available):
  $ bzr branch lp:lava-deployment-tool
 
 Quickstart
-^^^^^^^^^^
+==========
 
 For the impatient, or those just looking for a cheat sheet but know what they
 are doing otherwise, here are the basic set of commands to get an instance::
@@ -45,7 +45,7 @@ At this point you can start your LAVA instance one of two ways:
   $ /srv/lava/instances/testinstance/bin/lava-server manage runserver
 
 Quickstart with Vagrant
-^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------
 
 Vagrant_ is a tool to manage virtual machines. You can use it to keep
 development environments isolated from your main system.
@@ -53,7 +53,7 @@ development environments isolated from your main system.
 .. _Vagrant: http://vagrantup.com/
 
 Obtain Ubuntu Precise "base box"
---------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Once you have Vagrant installed, you will need an Ubuntu Precise virtual
 machine template (a "base box" in Vagrant terms), which can be obtained
@@ -65,20 +65,20 @@ The above step only needs to be done once. And the base box you get be
 reused for other Vagrant projects.
 
 Provide VM with access to host serial port (if needed)
-------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you will need access to a host serial port within VM, add
 the following ``config.vm.customize()`` line to ``Vagrantfile`` within
 the directory where you have ``lava-deployment-tool``::
 
- config.vm.customize(["modifyvm", :id, "--uart1", "0x3F8", "4", "--uartmode1", "/dev/ttyUSB0"]) 
+ config.vm.customize(["modifyvm", :id, "--uart1", "0x3F8", "4", "--uartmode1", "/dev/ttyUSB0"])
 
  (Replace ``/dev/ttyUSB0`` with the appropriate host serial device)
 
 The host serial port will be made available as COM1 (/dev/ttyS0) within the VM.
 
 Bring up VM
------------
+^^^^^^^^^^^
 
 Now, you can bring a VM with LAVA installed up with a single command,
 run from inside the directory where you have ``lava-deployment-tool``::
@@ -90,7 +90,7 @@ At the time of writing, the ``vagrant up`` step took a little less than
 instance by entering http://localhost:8080/ in your web browser.
 
 Software Requirements
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 We currently recommmend using Ubuntu 12.04.  This tool should work on
 Ubuntu versions 11.10 (Oneiric) and newer.
@@ -99,7 +99,7 @@ If you'd like to help us with other distributions feel free to contact
 us at linaro-validation (at) lists (dot) linaro (dot) org.
 
 Hardware Requirements
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 A small LAVA instance can be deployed on any modest hardware. We
 recommend at least one 1GB of RAM for runtime activity (this is
@@ -109,14 +109,47 @@ application data, especially if you wish to mirror current public LAVA
 instance used by Linaro.  LAVA uses append-only models so the storage
 requirements will grow at about several GB a year.
 
+Multi-Node hardware requirements
+--------------------------------
+
+If the instance is going to be sent any job submissions from third
+parties or if your own job submissions are going to use Multi-Node,
+there are additional considerations for hardware requirements.
+
+Multi-Node is explicitly about synchronising test operations across
+multiple boards and running Multi-Node jobs on a particular instance
+will have implications for the workload of that instance. This can
+become a particular problem if the instance is running on virtualised
+hardware with shared I/O, a limited amount of RAM or a limited number
+of available cores.
+
+.. note:: Downloading, preparing and deploying test images can result
+ in a lot of synchronous I/O and if this instance is running the server
+ and the dispatcher, running synchronised Multi-Node jobs can cause the
+ load on that machine to rise significantly, possibly causing the
+ server to become unresponsive.
+
+It is strongly recommended that Multi-Node instances use a separate
+dispatcher running on non-virtualised hardware so that the (possibly
+virtualised) server can continue to operate.
+
+Also, consider the number of boards connected to any one dispatcher. 
+MultiNode jobs will commonly compress and decompress several test image
+files of several hundred megabytes at precisely the same time. Even
+with a powerful multi-core machine, this has been shown to cause
+appreciable load. It is worth considering matching the number of boards
+to the number of cores for parallel decompression and matching the
+amount of available RAM to the number and size of test images which
+are likely to be in use.
+
 Before installing
-^^^^^^^^^^^^^^^^^
+=================
 
 Before you can create your first LAVA instance (standalone, independent LAVA
 installation) you must install some shared infrastructure on your machine.
-Currently this is the Apache 2 web server, PostgreSQL database server, RabbitMQ
-messaging server, and Python (and a few python programs and libraries). Because
-this installation method is not using pre-built packages you will also need
+Currently this is the Apache 2 web server, PostgreSQL database server
+and Python (and a few python programs and libraries). Because this
+installation method is not using pre-built packages you will also need
 development headers and a working compiler to build some of the native (C)
 extensions for python.
 
@@ -128,7 +161,7 @@ This step also prepares file-system places for LAVA. In particular it
 creates ``/srv/lava/`` where all LAVA instances are later stored.
 
 Creating an instance of LAVA
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+============================
 
 An instance of LAVA is a self-contained installation of LAVA.  This
 means the code that makes up LAVA, configuration data, a Postgres
@@ -178,7 +211,7 @@ and add bundle streams, devices, etc...
 .. _lava-manifest: https://launchpad.net/lava-manifest
 
 Backing Up LAVA instance
-^^^^^^^^^^^^^^^^^^^^^^^^
+========================
 
 LAVA instances store persistent data in two locations:
 
@@ -209,7 +242,7 @@ If you take a backup while running, you will need to do some manual
 cleanup when you restore from it.
 
 Restoring from backup
-^^^^^^^^^^^^^^^^^^^^^
+=====================
 
 Running the command ::
 
@@ -232,7 +265,7 @@ more natural soon).
 You cannot restore to an instance while it is running.
 
 Updating LAVA instance
-^^^^^^^^^^^^^^^^^^^^^^
+======================
 
 In some sense, each revision of $LAVA_MANIFEST_BRANCH is a release and
 can be updated to (from time to time a revision of lp:lava-manifest will
@@ -240,7 +273,7 @@ receive additional testing and be tagged as a release).  You can use
 lava-deployment-tool to update to a revision of the LAVA_MANIFEST_BRANCH
 that was used for that instance::
 
- $ ./lava-deployment-tool upgrade <revno>
+ $ ./lava-deployment-tool upgrade $LAVA_INSTANCE <revno>
 
 There are some points to consider:
 
@@ -275,11 +308,14 @@ There are some points to consider:
    failure to resolve some of the static assets (typically images,
    cascading style sheets and javascript libraries)
 
+6) Upgrades may require additional setup stages, at which point the
+   upgrade will halt and request that setup is run first.
+
 Upgrading from a pip-based instance to a buildout based instance
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------------------------
 
 In June 2012, we switched from a pip-based installation method to
-using buildout.  lava-deployment-tool can convert a pip-based
+using buildout. lava-deployment-tool can convert a pip-based
 installation to a buildout-based one, but without care this can result
 in changes to the set of packages/LAVA extensions installed.
 
@@ -304,7 +340,7 @@ Testing this process several times before running it on your
 production instance is advisable!
 
 Installing multiple LAVA instances on single IP machine
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+=======================================================
 
 After installing and starting a LAVA instance using the instructions above,
 you can use "toggle" sub command to change how you access the instance.
@@ -335,7 +371,7 @@ There is also a command to toggle all LAVA instances one time::
     lava-deployment-tool toggle_all location
 
 Anatomy of a LAVA instance
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+==========================
 
 An instance is composed of several parts:
 
@@ -347,7 +383,7 @@ An instance is composed of several parts:
    if not specified, as is usual with postgres).
 
 A note on Postgres versions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------
 
 By default lava-deployment-tool creates its databases in the default
 postgres cluster (on Ubuntu this is the 'main' cluster of whichever
@@ -360,7 +396,7 @@ of backing up one instance and restoring into another that has its db
 in a different cluster).
 
 Different kinds of deployment
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+=============================
 
 Production-like
 ---------------
@@ -454,7 +490,7 @@ tested and supported authentication methods for LAVA.
 .. _`Django auth subsystems`: https://docs.djangoproject.com/en/dev/topics/auth/
 
 Launchpad.net OpenID + local user database
-------------------------------------------
+==========================================
 
 LAVA server by default is preconfigured to authenticate using
 Launchpad.net OpenID service. Additionally, local Django user accounts
@@ -516,7 +552,7 @@ Then to actually enable and configure Crowd integration:
  6. Try to login, watch ``/srv/lava/instances/<deployment_name>/var/log/lava-uwsgi.log`` for errors.
 
 Contact and bug reports
-^^^^^^^^^^^^^^^^^^^^^^^
+========================
 
 Please report bugs using
 https://bugs.launchpad.net/lava-deployment-tool/+filebug
