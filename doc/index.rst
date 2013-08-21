@@ -210,6 +210,14 @@ and add bundle streams, devices, etc...
 .. _buildout: http://www.buildout.org/
 .. _lava-manifest: https://launchpad.net/lava-manifest
 
+A note on KVM device types
+--------------------------
+
+lava-deployment-tool does not assume that a KVM device-type is always
+desirable, so the qemu-kvm package is not installed by default. For
+KVM device types to work, install the qemu-kvm package on the
+dispatcher.
+
 Backing Up LAVA instance
 ========================
 
