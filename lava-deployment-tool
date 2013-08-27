@@ -1282,6 +1282,7 @@ cmd_setup() {
         set -xe
 
         echo "Add Linaro tools ppa"
+        sudo apt-get update
         sudo apt-get install --yes python-software-properties
         sudo add-apt-repository --yes ppa:linaro-maintainers/tools
         sudo apt-get update
