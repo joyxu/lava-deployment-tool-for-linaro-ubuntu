@@ -1244,7 +1244,11 @@ check_min_version() {
     fi
 
     if [ $SETUP_VER -lt $LAVA_SETUP_REQUIRED_VERSION ]; then
-        die "Please run '$0 setup' first"
+        if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ]; then
+            die "Please run '$0 setupworker' first"
+        else
+            die "Please run '$0 setup' first"
+        fi
     fi
 }
 
@@ -1282,7 +1286,6 @@ cmd_setup() {
         set -xe
 
         echo "Add Linaro tools ppa"
-        sudo apt-get update
         sudo apt-get install --yes python-software-properties
         sudo add-apt-repository --yes ppa:linaro-maintainers/tools
         sudo apt-get update
@@ -2123,6 +2126,7 @@ Commands for working with instances:
     install - install LAVA instance
     upgrade - upgrade LAVA instance
     remove  - remove LAVA instance (undoes install)
+    setupworker - update the setup of a remote worker node
     installworker - install a remote worker node
     upgradeworker - upgrade remote worker node
     removeworker - remove remote worker node
@@ -2225,8 +2229,9 @@ main() {
         install|upgrade|remove|preview)
             cmd_$cmd "$@" # 2>&1 | tee "$cmd-log-for-instance-$LAVA_INSTANCE.log"
             ;;
-        installworker|upgradeworker|removeworker)
+        installworker|upgradeworker|removeworker|setupworker)
             export LAVA_INSTALL_STEPS=$LAVA_WORKER_STEPS
+            os_check
             cmd_${cmd/worker/} "$@"
             ;;
         manage)
