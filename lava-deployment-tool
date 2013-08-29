@@ -352,7 +352,7 @@ wizard_devmode () {
 }
 
 install_devmode() {
-	true
+    true
 }
 
 defaults_user() {
@@ -451,50 +451,50 @@ wizard_fs() {
 _ssh_install() {
     sshdir=$(eval echo ~$LAVA_SYS_USER)/.ssh
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ]
-	then
-		# we are configuring a worker
-		if [ ! -d $sshdir ]
-		then
-			echo "SSH directory (${sshdir}) not found, creating it"
-			sudo mkdir -p $sshdir
-			sudo chown $LAVA_SYS_USER $sshdir
-		fi
+    then
+        # we are configuring a worker
+        if [ ! -d $sshdir ]
+        then
+            echo "SSH directory (${sshdir}) not found, creating it"
+            sudo mkdir -p $sshdir
+            sudo chown $LAVA_SYS_USER $sshdir
+        fi
 
-		if [ ! -f $sshdir/id_rsa ]
-		then
-			echo "Creating RSA ssh key for user $LAVA_SYS_USER"
-			sudo -u $LAVA_SYS_USER ssh-keygen -C "ssh key used by LAVA for sshfs" -f $sshdir/id_rsa -t rsa -N ""
-		fi
+        if [ ! -f $sshdir/id_rsa ]
+        then
+            echo "Creating RSA ssh key for user $LAVA_SYS_USER"
+            sudo -u $LAVA_SYS_USER ssh-keygen -C "ssh key used by LAVA for sshfs" -f $sshdir/id_rsa -t rsa -N ""
+        fi
 
         # we don't want anything under media since this will get mounted
         sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/*
     else
-		### we are configuring a master
-		# Setup the ssh directories in case you want to point workers at this master
-		if [ ! -d $sshdir ]
-		then
-			echo "Creating SSH directory (${sshdir}) as it didn't exist"
-			sudo mkdir -p $sshdir
-			sudo chown -R $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir
-			sudo chmod 700 $sshdir
-		fi
+        ### we are configuring a master
+        # Setup the ssh directories in case you want to point workers at this master
+        if [ ! -d $sshdir ]
+        then
+            echo "Creating SSH directory (${sshdir}) as it didn't exist"
+            sudo mkdir -p $sshdir
+            sudo chown -R $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir
+            sudo chmod 700 $sshdir
+        fi
 
-		if [ ! -f $sshdir/authorized_keys ]
-		then
-			echo "Creating an authorized_keys file, as it didn't exist"
-			sudo touch $sshdir/authorized_keys
-			sudo chown $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir/authorized_keys
-			sudo chmod 600 $sshdir/authorized_keys
-		fi
+        if [ ! -f $sshdir/authorized_keys ]
+        then
+            echo "Creating an authorized_keys file, as it didn't exist"
+            sudo touch $sshdir/authorized_keys
+            sudo chown $LAVA_SYS_USER:$LAVA_SYS_USER $sshdir/authorized_keys
+            sudo chmod 600 $sshdir/authorized_keys
+        fi
 
-		# this file will allow worker nodes to check if the directory is
-		# properly mounted or not
-		sudo touch $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/.mounted
+        # this file will allow worker nodes to check if the directory is
+        # properly mounted or not
+        sudo touch $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/.mounted
 
-		# ensure lava-logs and job-output is group writeable for new sshfs workers
-		sudo chmod g+w $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
-		sudo chmod g+w $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/job-output
-	fi
+        # ensure lava-logs and job-output is group writeable for new sshfs workers
+        sudo chmod g+w $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
+        sudo chmod g+w $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/job-output
+    fi
 }
 
 install_fs() {
@@ -810,7 +810,7 @@ allow_remote_postgres() {
     done 
     for hbafile in `find /etc/postgresql -name pg_hba.conf`
     do
-        echo "host	all	all	0.0.0.0/0	trust" | sudo tee -a $hbafile > /dev/null
+        echo "host    all    all    0.0.0.0/0    trust" | sudo tee -a $hbafile > /dev/null
     done
     sudo /etc/init.d/postgresql restart
 }
@@ -1230,7 +1230,7 @@ install_config_app() {
             migrate --noinput || die "Failed to run database migrations"
         set +x
 
-    	echo "Starting instance again..."
+        echo "Starting instance again..."
         set -x
         sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
         set +x
