@@ -351,6 +351,10 @@ wizard_devmode () {
     return 1  # another loop please
 }
 
+install_devmode() {
+	true
+}
+
 defaults_user() {
     if [ $LAVA_DEV_MODE = "yes" ]; then
         export LAVA_SYS_USER=$(whoami)
