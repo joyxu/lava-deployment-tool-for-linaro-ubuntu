@@ -42,6 +42,9 @@ LAVA_DEV_MODE=no
 LAVA_NON_INTERACTIVE=no
 LAVA_DB_CUSTOMPWD=no
 
+# force destructive actions, specially in non-interactive mode
+LAVA_FORCE=no
+
 os_check() {
     case `lsb_release -i -s` in
         Ubuntu)
@@ -1690,11 +1693,17 @@ _maybe_post_convert_to_buildout () {
 cmd_remove() {
     LAVA_INSTANCE=${1:-dev}
 
+    local destroy=""
     if [ "$LAVA_NON_INTERACTIVE" = yes ]; then
-        echo
-        echo "For safety reasons we do not allow removing an instance"
-        echo "in non-interactive mode. Try again without -n/--non-interactive"
-        exit 1
+        if [ "$LAVA_FORCE" = no ]; then
+            echo
+            echo "For safety reasons we do not allow removing an instance"
+            echo "in non-interactive mode. Try again without -n/--non-interactive"
+            echo "(or use --force)"
+            exit 1
+        else
+            destroy="DESTROY"
+        fi
     fi
 
     _banner
@@ -1722,7 +1731,7 @@ cmd_remove() {
     echo "We will remove everything in $LAVA_PREFIX/$LAVA_INSTANCE"
     echo "We will remove the apache site $LAVA_INSTANCE.conf"
     echo
-    _read_input "Type DESTROY to continue: " RESPONSE
+    _read_input "Type DESTROY to continue: " RESPONSE "$destroy"
     if test "$RESPONSE" != 'DESTROY'; then
         echo "Instance removal aborted."
         exit 1
@@ -2180,6 +2189,10 @@ Options:
   Runs non-interactively. Default answers for all questions
   will be assumed.
 
+-f, --force
+  Forces potentially destructive actions to be performed, even in
+  non-interactive mode.
+
 See the README file for instructions
 END_OF_USAGE
 }
@@ -2208,9 +2221,10 @@ main() {
     fi
 
     options="
-        -o nd
+        -o ndf
         --long non-interactive
         --long developer-mode
+        --long force
     "
     TEMP="$(getopt --name ${__FILE_NAME__} $options -- "$@")"
     getopt_status=$?
@@ -2228,6 +2242,9 @@ main() {
                 ;;
             --developer-mode|-d)
                 LAVA_DEV_MODE=yes
+                ;;
+            --force|-f)
+                LAVA_FORCE=yes
                 ;;
             --)
                 break;;
