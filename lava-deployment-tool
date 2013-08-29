@@ -1690,6 +1690,13 @@ _maybe_post_convert_to_buildout () {
 cmd_remove() {
     LAVA_INSTANCE=${1:-dev}
 
+    if [ "$LAVA_NON_INTERACTIVE" = yes ]; then
+        echo
+        echo "For safety reasons we do not allow removing an instance"
+        echo "in non-interactive mode. Try again without -n/--non-interactive"
+        exit 1
+    fi
+
     _banner
 
     # Sanity checking, ensure that instance exists
@@ -1716,7 +1723,10 @@ cmd_remove() {
     echo "We will remove the apache site $LAVA_INSTANCE.conf"
     echo
     _read_input "Type DESTROY to continue: " RESPONSE
-    test "$RESPONSE" = 'DESTROY' || return
+    if test "$RESPONSE" != 'DESTROY'; then
+        echo "Instance removal aborted."
+        exit 1
+    fi
 
     logger "Removing LAVA instance $LAVA_INSTANCE"
 
