@@ -988,7 +988,7 @@ wizard_app() {
         LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout-development.cfg}"
     else
         LAVA_SERVER_DEBUG=false
-        LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
+        LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout-production.cfg}"
     fi
     return 0
 }
