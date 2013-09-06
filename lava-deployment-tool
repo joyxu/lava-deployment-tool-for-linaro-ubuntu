@@ -983,8 +983,9 @@ install_docs() {
     BASE="$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs"
     if [ ! -d $BASE ]; then
         mkdir $BASE
+    else
+        rm $BASE/*
     fi
-    rm $BASE/*
     cwd=`pwd`
     for dir in $LAVA_PREFIX/$LAVA_INSTANCE/code/current/branch-cache/*; do
         module=`basename $dir`
@@ -994,8 +995,8 @@ install_docs() {
             cd $docdir
             sphinx-build -b html -d _build/doctrees   . _build/html
             if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
-                sudo ln -s $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
-                sudo ln -s $docdir/_build/html $cwd/doc/$module
+                sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
+                sudo ln -sf $docdir/_build/html $cwd/doc/$module
             fi
         fi
     done
@@ -1009,8 +1010,8 @@ install_docs() {
             if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
                 rm $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
                 rm $cwd/doc/$module
-                sudo ln -s $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
-                sudo ln -s $docdir/_build/html $cwd/doc/$module
+                sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
+                sudo ln -sf $docdir/_build/html $cwd/doc/$module
             fi
         fi
     done
@@ -1019,7 +1020,7 @@ install_docs() {
     cd $cwd
     cd doc
     sphinx-build -b html -d _build/doctrees   . _build/html
-    sudo ln -s $cwd/doc/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/
+    sudo ln -sf $cwd/doc/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/
     cd $cwd
 }
 
