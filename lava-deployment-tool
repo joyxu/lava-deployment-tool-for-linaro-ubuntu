@@ -986,6 +986,14 @@ install_docs() {
     else
         rm $BASE/*
     fi
+    if [ ! -d ./doc/modules ]; then
+        mkdir ./doc/modules
+    else
+        rm -f ./doc/modules/*
+    fi
+    if [ -d doc/_build ]; then
+        rm -rf doc/_build/
+    fi
     cwd=`pwd`
     for dir in $LAVA_PREFIX/$LAVA_INSTANCE/code/current/branch-cache/*; do
         module=`basename $dir`
@@ -998,7 +1006,7 @@ install_docs() {
                 # provide a link to the html for the actual content
                 sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
                 # provide a link to the .rst for index generation
-                sudo ln -sf $docdir/ $cwd/doc/$module
+                sudo ln -sf $docdir/ $cwd/doc/modules/$module
             fi
         fi
     done
@@ -1011,11 +1019,11 @@ install_docs() {
             sphinx-build -b html -d _build/doctrees   . _build/html
             if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
                 rm $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
-                rm $cwd/doc/$module
+                rm $cwd/doc/modules/$module
                 # provide a link to the html for the actual content
                 sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
                 # provide a link to the .rst for index generation
-                sudo ln -sf $docdir/ $cwd/doc/$module
+                sudo ln -sf $docdir/ $cwd/doc/modules/$module
             fi
         fi
     done
@@ -1026,6 +1034,8 @@ install_docs() {
     sphinx-build -b html -d _build/doctrees   . _build/html
     sudo ln -sf $cwd/doc/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/
     cd $cwd
+    # now tidy up so that the vcs status is clean
+    rm doc/modules/*
 }
 
 defaults_app() {
