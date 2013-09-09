@@ -995,8 +995,10 @@ install_docs() {
             cd $docdir
             sphinx-build -b html -d _build/doctrees   . _build/html
             if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
+                # provide a link to the html for the actual content
                 sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
-                sudo ln -sf $docdir/_build/html $cwd/doc/$module
+                # provide a link to the .rst for index generation
+                sudo ln -sf $docdir/ $cwd/doc/$module
             fi
         fi
     done
@@ -1010,8 +1012,10 @@ install_docs() {
             if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
                 rm $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
                 rm $cwd/doc/$module
+                # provide a link to the html for the actual content
                 sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
-                sudo ln -sf $docdir/_build/html $cwd/doc/$module
+                # provide a link to the .rst for index generation
+                sudo ln -sf $docdir/ $cwd/doc/$module
             fi
         fi
     done
