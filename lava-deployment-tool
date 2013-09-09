@@ -1147,6 +1147,7 @@ SETTINGS_CONF
     set -ex
     if [ ! -e ${code} ]; then
         mkdir ${code}
+        mkdir ${code}/local
         (cd "$manifest_cache" && git archive "$LAVA_MANIFEST_HEAD") | (cd "$code" && tar x)
         mkdir ${code}/bin
         [ -d $LAVA_PREFIX/$LAVA_INSTANCE/code/current/local ] && \
