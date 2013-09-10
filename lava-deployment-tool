@@ -1815,6 +1815,8 @@ _restore_db_from_dump () {
         $dbname || true
     sudo -u postgres createdb \
         --encoding=UTF-8 \
+        --locale=en_US.UTF-8 \
+        --template=template0 \
         --owner=$dbuser \
         --port $dbport \
         --no-password \
