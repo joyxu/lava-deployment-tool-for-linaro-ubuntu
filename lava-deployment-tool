@@ -674,6 +674,10 @@ wizard_buildout () {
     true
 }
 
+wizard_docs () {
+    true
+}
+
 install_buildout () {
     set -xe
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
