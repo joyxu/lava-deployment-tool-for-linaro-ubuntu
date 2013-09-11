@@ -1696,7 +1696,9 @@ cmd_upgrade() {
     install_app
     _maybe_post_convert_to_buildout
     install_config_app
-    install_docs
+    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
+        install_docs
+    fi
 }
 
 
