@@ -1,5 +1,5 @@
 #!/bin/bash
-LAVA_DEPLOYMENT_TOOL_VERSION="0.6"
+LAVA_DEPLOYMENT_TOOL_VERSION="0.7"
 
 # Global Configuration
 
@@ -24,7 +24,7 @@ LAVA_PYTHON=python2.6
 LAVA_UWSGI=1.0.3
 
 # Current version of setup required by lava (global state)
-export LAVA_SETUP_REQUIRED_VERSION=27
+export LAVA_SETUP_REQUIRED_VERSION=28
 # Current required version of instance config
 REQUIRED_LAVA_CONFIG_VERSION=4
 
@@ -32,7 +32,7 @@ REQUIRED_LAVA_CONFIG_VERSION=4
 export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
-LAVA_INSTALL_STEPS="devmode user fs buildout database web_hosting app config_app"
+LAVA_INSTALL_STEPS="devmode user fs buildout database web_hosting app config_app docs"
 LAVA_WORKER_STEPS="get_master devmode user fs buildout remote_database web_hosting app config_app remote_fs"
 
 # Will cause Django to be run with DEBUG enabled.
@@ -68,7 +68,7 @@ os_check() {
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
                     LAVA_WORKER_LIST="whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev mercurial conmux linaro-image-tools unzip bzr sshfs"
-                    LAVA_SERVER_ADD="apache2 apache2-threaded-dev postgresql lava-coordinator"
+                    LAVA_SERVER_ADD="apache2 apache2-threaded-dev postgresql lava-coordinator python-sphinx python-versiontools"
                     ;;
             esac
             ;;
@@ -979,6 +979,64 @@ UWSGI_INI
     sudo service apache2 restart
 }
 
+install_docs() {
+    BASE="$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs"
+    if [ ! -d $BASE ]; then
+        mkdir $BASE
+    else
+        rm $BASE/*
+    fi
+    if [ ! -d ./doc/modules ]; then
+        mkdir ./doc/modules
+    else
+        rm -f ./doc/modules/*
+    fi
+    if [ -d doc/_build ]; then
+        rm -rf doc/_build/
+    fi
+    cwd=`pwd`
+    for dir in $LAVA_PREFIX/$LAVA_INSTANCE/code/current/branch-cache/*; do
+        module=`basename $dir`
+        latest=`ls -t1 $dir/checkouts/|head -n1`
+        docdir=$dir/checkouts/$latest/doc/
+        if [ -d $docdir ]; then
+            cd $docdir
+            sphinx-build -b html -d _build/doctrees   . _build/html
+            if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
+                # provide a link to the html for the actual content
+                sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
+                # provide a link to the .rst for index generation
+                sudo ln -sf $docdir/ $cwd/doc/modules/$module
+            fi
+        fi
+    done
+    # override tip with local buildouts
+    for dir in $LAVA_PREFIX/$LAVA_INSTANCE/code/current/local/*; do
+        module=`basename $dir`
+        docdir=$dir/checkouts/$module/doc/
+        if [ -d $docdir ]; then
+            cd $docdir
+            sphinx-build -b html -d _build/doctrees   . _build/html
+            if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
+                rm $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
+                rm $cwd/doc/modules/$module
+                # provide a link to the html for the actual content
+                sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
+                # provide a link to the .rst for index generation
+                sudo ln -sf $docdir/ $cwd/doc/modules/$module
+            fi
+        fi
+    done
+    # add docs for lava-deployment-tool which also includes the index page to the other modules.
+    # this build includes the docs for each built module in the toctable of this build.
+    cd $cwd
+    cd doc
+    sphinx-build -b html -d _build/doctrees   . _build/html
+    sudo ln -sf $cwd/doc/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/
+    cd $cwd
+    # now tidy up so that the vcs status is clean
+    rm doc/modules/*
+}
 
 defaults_app() {
     true
@@ -1638,6 +1696,7 @@ cmd_upgrade() {
     install_app
     _maybe_post_convert_to_buildout
     install_config_app
+    install_docs
 }
 
 
