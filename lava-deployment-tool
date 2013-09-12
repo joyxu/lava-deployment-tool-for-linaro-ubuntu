@@ -990,6 +990,7 @@ install_docs() {
     else
         rm $BASE/*
     fi
+    cd `dirname $0`
     if [ ! -d ./doc/modules ]; then
         mkdir ./doc/modules
     else
@@ -1007,8 +1008,9 @@ install_docs() {
             cd $docdir
             sphinx-build -b html -d _build/doctrees   . _build/html
             if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
-                # provide a link to the html for the actual content
-                sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
+                # copy the actual content
+                mkdir $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
+                sudo cp -par $docdir/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
                 # provide a link to the .rst for index generation
                 sudo ln -sf $docdir/ $cwd/doc/modules/$module
             fi
@@ -1022,10 +1024,10 @@ install_docs() {
             cd $docdir
             sphinx-build -b html -d _build/doctrees   . _build/html
             if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
-                rm $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
+                rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module/*
                 rm $cwd/doc/modules/$module
-                # provide a link to the html for the actual content
-                sudo ln -sf $docdir/_build/html $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
+                # copy the actual content
+                sudo cp -par $docdir/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
                 # provide a link to the .rst for index generation
                 sudo ln -sf $docdir/ $cwd/doc/modules/$module
             fi
@@ -1036,7 +1038,8 @@ install_docs() {
     cd $cwd
     cd doc
     sphinx-build -b html -d _build/doctrees   . _build/html
-    sudo ln -sf $cwd/doc/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/
+    # copy the l-d-t content into the top level
+    sudo cp -par $cwd/doc/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/
     cd $cwd
     # now tidy up so that the vcs status is clean
     rm doc/modules/*
