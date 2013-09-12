@@ -16,7 +16,7 @@ LAVA_MANIFEST_HEAD="${LAVA_MANIFEST_HEAD-master}"
 # Where to cache the eggs, branches and downloads for buildbot
 LAVA_EGG_CACHE=$LAVA_ROOT/.cache/eggs
 LAVA_DOWNLOAD_CACHE=$LAVA_ROOT/.cache/download-cache
-LAVA_BRANCH_CACHE=$LAVA_ROOT/.cache/branch-cache
+LAVA_GIT_CACHE=$LAVA_ROOT/.cache/git-cache
 
 # All LAVA uses this python version
 LAVA_PYTHON=python2.6
@@ -1155,7 +1155,7 @@ SETTINGS_CONF
             -maxdepth 1 -type l -exec cp -P \{} $code/local/ \;
         ln -s ${venv}/bin/{uwsgi,buildout} ${code}/bin/
         ln -s $LAVA_DOWNLOAD_CACHE ${code}/download-cache
-        ln -s $LAVA_BRANCH_CACHE ${code}/branch-cache
+        ln -s $LAVA_GIT_CACHE ${code}/git-cache
         ln -s $LAVA_EGG_CACHE ${code}/eggs
     fi
     # If LAVA_BUILDOUT_CFG does not specify a file in the branch,
@@ -1432,8 +1432,8 @@ cmd_setup() {
         sudo chown $(whoami):$(id -gn) $LAVA_EGG_CACHE
         sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
         sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
-        sudo mkdir -p $LAVA_BRANCH_CACHE
-        sudo chown $(whoami):$(id -gn) $LAVA_BRANCH_CACHE
+        sudo mkdir -p $LAVA_GIT_CACHE
+        sudo chown $(whoami):$(id -gn) $LAVA_GIT_CACHE
         pushd $LAVA_DOWNLOAD_CACHE/dist
         ensure_downloaded_check_sha256 \
             http://pypi.python.org/packages/source/d/distribute/distribute-0.6.24.tar.gz \
