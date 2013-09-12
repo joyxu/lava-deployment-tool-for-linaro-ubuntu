@@ -1154,6 +1154,7 @@ SETTINGS_CONF
             find $LAVA_PREFIX/$LAVA_INSTANCE/code/current/local \
             -maxdepth 1 -type l -exec cp -P \{} $code/local/ \;
         ln -s ${venv}/bin/{uwsgi,buildout} ${code}/bin/
+        _create_buildout_caches
         ln -s $LAVA_DOWNLOAD_CACHE ${code}/download-cache
         ln -s $LAVA_GIT_CACHE ${code}/git-cache
         ln -s $LAVA_EGG_CACHE ${code}/eggs
@@ -1383,6 +1384,16 @@ ensure_downloaded_check_sha256 () {
     echo "$sha256  $filename" | sha256sum -c || die "checksum mismatch on $filename"
 }
 
+_create_buildout_caches() {
+    echo "Creating buildout caches"
+    sudo mkdir -p $LAVA_EGG_CACHE
+    sudo chown $(whoami):$(id -gn) $LAVA_EGG_CACHE
+    sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
+    sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
+    sudo mkdir -p $LAVA_GIT_CACHE
+    sudo chown $(whoami):$(id -gn) $LAVA_GIT_CACHE
+}
+
 cmd_setup() {
     SETUP_VER=0
     if [ -e $LAVA_PREFIX/.setup ]; then
@@ -1427,13 +1438,7 @@ cmd_setup() {
         sudo chown $(whoami):$(id -gn) $LAVA_ROOT
         sudo chown $(whoami):$(id -gn) $LAVA_PREFIX
 
-        echo "Creating buildout caches"
-        sudo mkdir -p $LAVA_EGG_CACHE
-        sudo chown $(whoami):$(id -gn) $LAVA_EGG_CACHE
-        sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
-        sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
-        sudo mkdir -p $LAVA_GIT_CACHE
-        sudo chown $(whoami):$(id -gn) $LAVA_GIT_CACHE
+        _create_buildout_caches
         pushd $LAVA_DOWNLOAD_CACHE/dist
         ensure_downloaded_check_sha256 \
             http://pypi.python.org/packages/source/d/distribute/distribute-0.6.24.tar.gz \
