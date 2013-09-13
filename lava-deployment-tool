@@ -1011,8 +1011,9 @@ install_docs() {
     else
         rm $BASE/*
     fi
-    cwd=`pwd`
+    origdir=`pwd`
     cd `dirname $0`
+    cwd=`pwd`
     if [ ! -d ./doc/modules ]; then
         mkdir ./doc/modules
     else
@@ -1064,6 +1065,7 @@ install_docs() {
     cd $cwd
     # now tidy up so that the vcs status is clean
     rm doc/modules/*
+    cd $orig_dir
 }
 
 defaults_app() {
@@ -1149,11 +1151,6 @@ SETTINGS_CONF
     gen_lava_dispatcher_config
 
     ln -sfT $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
-    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
-        install_docs
-        # the coordinator call is idempotent
-        install_coordinator
-    fi
 }
 
 
@@ -1329,7 +1326,11 @@ install_config_app() {
         sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
         set +x
     fi
-
+    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
+        install_docs
+        # the coordinator call is idempotent
+        install_coordinator
+    fi
     # Get out of virtualenv
     deactivate
 }
