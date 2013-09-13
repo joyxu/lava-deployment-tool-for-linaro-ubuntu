@@ -33,7 +33,7 @@ export LAVA_SUPPORTED=0
 
 # Installation and configuration steps (all the wizard_xxx install_xxx functions)
 LAVA_INSTALL_STEPS="devmode user fs buildout database web_hosting app config_app docs"
-LAVA_WORKER_STEPS="get_master devmode user fs buildout remote_database web_hosting app config_app remote_fs"
+LAVA_WORKER_STEPS="get_master devmode user fs buildout remote_database web_hosting app config_app remote_fs coordinator"
 
 # Will cause Django to be run with DEBUG enabled.
 LAVA_DEV_MODE=no
@@ -666,6 +666,27 @@ EOF
     ssh-keyscan -H $LAVA_REMOTE_FS_HOST | sudo -u $LAVA_SYS_USER tee $sshdir/known_hosts
 }
 
+install_coordinator () {
+    # put the lava-coordinator conf file in place
+    if [ ! -d /etc/lava-coordinator ]; then
+        sudo mkdir /etc/lava-coordinator
+    fi
+    if [ ! -f /etc/lava-coordinator/lava-coordinator.conf ]; then
+        sudo sh -c "cat >/etc/lava-coordinator/lava-coordinator.conf" <<EOF
+{
+    "port": 3079,
+    "blocksize": 4096,
+    "poll_delay": 3,
+    "coordinator_hostname": "$LAVA_MASTER"
+}
+EOF
+    fi
+}
+
+wizard_coordinator () {
+    true
+}
+
 defaults_buildout () {
     true
 }
@@ -990,6 +1011,7 @@ install_docs() {
     else
         rm $BASE/*
     fi
+    cwd=`pwd`
     cd `dirname $0`
     if [ ! -d ./doc/modules ]; then
         mkdir ./doc/modules
@@ -999,7 +1021,6 @@ install_docs() {
     if [ -d doc/_build ]; then
         rm -rf doc/_build/
     fi
-    cwd=`pwd`
     for dir in $LAVA_PREFIX/$LAVA_INSTANCE/code/current/branch-cache/*; do
         module=`basename $dir`
         latest=`ls -t1 $dir/checkouts/|head -n1`
@@ -1128,6 +1149,11 @@ SETTINGS_CONF
     gen_lava_dispatcher_config
 
     ln -sfT $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
+    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
+        install_docs
+        # the coordinator call is idempotent
+        install_coordinator
+    fi
 }
 
 
@@ -1705,9 +1731,6 @@ cmd_upgrade() {
     install_app
     _maybe_post_convert_to_buildout
     install_config_app
-    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
-        install_docs
-    fi
 }
 
 
