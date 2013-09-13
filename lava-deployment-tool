@@ -990,6 +990,7 @@ install_docs() {
     else
         rm $BASE/*
     fi
+    cwd=`pwd`
     cd `dirname $0`
     if [ ! -d ./doc/modules ]; then
         mkdir ./doc/modules
@@ -999,7 +1000,6 @@ install_docs() {
     if [ -d doc/_build ]; then
         rm -rf doc/_build/
     fi
-    cwd=`pwd`
     for dir in $LAVA_PREFIX/$LAVA_INSTANCE/code/current/branch-cache/*; do
         module=`basename $dir`
         latest=`ls -t1 $dir/checkouts/|head -n1`
@@ -1128,6 +1128,9 @@ SETTINGS_CONF
     gen_lava_dispatcher_config
 
     ln -sfT $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
+    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
+        install_docs
+    fi
 }
 
 
@@ -1705,9 +1708,6 @@ cmd_upgrade() {
     install_app
     _maybe_post_convert_to_buildout
     install_config_app
-    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
-        install_docs
-    fi
 }
 
 
