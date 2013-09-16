@@ -1066,7 +1066,7 @@ install_docs() {
     cd $cwd
     # now tidy up so that the vcs status is clean
     rm doc/modules/*
-    cd $orig_dir
+    cd $origdir
 }
 
 defaults_app() {
