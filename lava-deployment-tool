@@ -27,7 +27,7 @@ LAVA_UWSGI=1.0.3
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=28
 # Current required version of instance config
-REQUIRED_LAVA_CONFIG_VERSION=4
+REQUIRED_LAVA_CONFIG_VERSION=6
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -159,6 +159,25 @@ evolve_config_4_5() {
     "${venv}/bin/pip" install \
         $LAVA_DOWNLOAD_CACHE/dist/versiontools-1.9.1.tar.gz
     LAVA_CONFIG_VERSION=5
+}
+
+evolve_config_5_6() {
+    # version 6 deploys from git using LAVA_MANIFEST_REPOSITORY instead of
+    # LAVA_MANIFEST_BRANCH
+    if [ -n "$LAVA_MANIFEST_BRANCH" ]; then
+        if [ "$LAVA_MANIFEST_BRANCH" != 'lp:lava-manifest' ]; then
+            echo "ERROR: You have a custom LAVA_MANIFEST_BRANCH configuration in instance.conf"
+            echo "       You need to manually change it to point to a git repository now."
+            echo
+            echo "In $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf, replace"
+            echo "  LAVA_MANIFEST_BRANCH=$LAVA_MANIFEST_BRANCH"
+            echo "with"
+            echo "  LAVA_MANIFEST_REPOSITORY=/url/to/git/repository"
+            echo "  LAVA_MANIFEST_BRANCH=master"
+            exit 1
+        fi
+    fi
+    LAVA_CONFIG_VERSION=6
 }
 
 _load_configuration() {
