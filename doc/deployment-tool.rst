@@ -404,6 +404,14 @@ Moving an instance between clusters is not currently supported (short
 of backing up one instance and restoring into another that has its db
 in a different cluster).
 
+A note on wsgi buffers
+----------------------
+
+When submitting a large amount of data to the django application, 
+it is possible to get an HTTP 500 internal server error. This problem
+can be fixed by appending ``buffer-size = 65535`` to 
+``/srv/lava/instance/<INSTANCE>/etc/lava-server/uwsgi.ini``
+
 Different kinds of deployment
 =============================
 

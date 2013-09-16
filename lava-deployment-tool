@@ -997,6 +997,7 @@ auto-procname = true
 touch-reload = $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/uwsgi.reload
 gid = $LAVA_SYS_USER
 uid = $LAVA_SYS_USER
+buffer-size = 65535
 UWSGI_INI
 
     sudo a2ensite $LAVA_INSTANCE.conf
