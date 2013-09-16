@@ -1027,67 +1027,41 @@ UWSGI_INI
 }
 
 install_docs() {
-    BASE="$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs"
-    if [ ! -d $BASE ]; then
-        mkdir $BASE
-    else
-        rm $BASE/*
-    fi
-    origdir=`pwd`
-    cd `dirname $0`
-    cwd=`pwd`
-    if [ ! -d ./doc/modules ]; then
-        mkdir ./doc/modules
-    else
-        rm -f ./doc/modules/*
-    fi
-    if [ -d doc/_build ]; then
-        rm -rf doc/_build/
-    fi
-    for dir in $LAVA_PREFIX/$LAVA_INSTANCE/code/current/branch-cache/*; do
-        module=`basename $dir`
-        latest=`ls -t1 $dir/checkouts/|head -n1`
-        docdir=$dir/checkouts/$latest/doc/
+    local lava_deployment_tool=$(readlink -f $0 | xargs dirname)
+
+    local base="$LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs"
+    mkdir -p $base
+    rm -rf $base/*
+
+    local lava_deployment_tool_docs=$base/_src
+    cp -par $lava_deployment_tool/doc $lava_deployment_tool_docs
+
+    # installed components
+    local develop_eggs_dir=$LAVA_PREFIX/$LAVA_INSTANCE/code/current/develop-eggs
+    for egglink in $develop_eggs_dir/*.egg-link; do
+        component=$(basename $egglink | sed -e 's/\.egg-link//')
+        docdir=$(head -n 1 $egglink)/doc
         if [ -d $docdir ]; then
-            cd $docdir
-            sphinx-build -b html -d _build/doctrees   . _build/html
-            if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
-                # copy the actual content
-                mkdir $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
-                sudo cp -par $docdir/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
-                # provide a link to the .rst for index generation
-                sudo ln -sf $docdir/ $cwd/doc/modules/$module
-            fi
+            echo "INFO: building documentation for $component from $docdir"
+            sphinx-build -b html $docdir $base/$component
+            ln -sfT $docdir $lava_deployment_tool_docs/$component
         fi
     done
-    # override tip with local buildouts
-    for dir in $LAVA_PREFIX/$LAVA_INSTANCE/code/current/local/*; do
-        module=`basename $dir`
-        docdir=$dir/checkouts/$module/doc/
+
+    # components in local development
+    local local_development=$LAVA_PREFIX/$LAVA_INSTANCE/code/current/local
+    for dir in $local_development/*; do
+        component=$(basename $dir)
+        docdir=$dir/doc
         if [ -d $docdir ]; then
-            cd $docdir
-            sphinx-build -b html -d _build/doctrees   . _build/html
-            if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module ]; then
-                rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module/*
-                rm $cwd/doc/modules/$module
-                # copy the actual content
-                sudo cp -par $docdir/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/$module
-                # provide a link to the .rst for index generation
-                sudo ln -sf $docdir/ $cwd/doc/modules/$module
-            fi
+            echo "INFO: building documentation for $component from $docdir"
+            sphinx-build -b html $docdir $base/$component
+            ln -sfT $docdir $lava_deployment_tool_docs/$component
         fi
     done
-    # add docs for lava-deployment-tool which also includes the index page to the other modules.
-    # this build includes the docs for each built module in the toctable of this build.
-    cd $cwd
-    cd doc
-    sphinx-build -b html -d _build/doctrees   . _build/html
-    # copy the l-d-t content into the top level
-    sudo cp -par $cwd/doc/_build/html/* $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/static/docs/
-    cd $cwd
-    # now tidy up so that the vcs status is clean
-    rm doc/modules/*
-    cd $origdir
+
+    # documentation for lava-deployment-tool itself. Also contains the index.
+    sphinx-build -b html $lava_deployment_tool_docs $base
 }
 
 defaults_app() {
