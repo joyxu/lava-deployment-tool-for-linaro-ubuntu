@@ -10,12 +10,13 @@ LAVA_ROOT=/srv/lava
 LAVA_PREFIX=$LAVA_ROOT/instances
 
 # Deploy revisions of this branch
-LAVA_MANIFEST_BRANCH="${LAVA_MANIFEST_BRANCH-lp:lava-manifest}"
+LAVA_MANIFEST_REPOSITORY="${LAVA_MANIFEST_REPOSITORY-http://git.linaro.org/git-ro/lava/lava-manifest.git}"
+LAVA_MANIFEST_HEAD="${LAVA_MANIFEST_HEAD-master}"
 
 # Where to cache the eggs, branches and downloads for buildbot
 LAVA_EGG_CACHE=$LAVA_ROOT/.cache/eggs
 LAVA_DOWNLOAD_CACHE=$LAVA_ROOT/.cache/download-cache
-LAVA_BRANCH_CACHE=$LAVA_ROOT/.cache/branch-cache
+LAVA_GIT_CACHE=$LAVA_ROOT/.cache/git-cache
 
 # All LAVA uses this python version
 LAVA_PYTHON=python2.6
@@ -26,7 +27,7 @@ LAVA_UWSGI=1.0.3
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=28
 # Current required version of instance config
-REQUIRED_LAVA_CONFIG_VERSION=4
+REQUIRED_LAVA_CONFIG_VERSION=6
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -160,6 +161,25 @@ evolve_config_4_5() {
     LAVA_CONFIG_VERSION=5
 }
 
+evolve_config_5_6() {
+    # version 6 deploys from git using LAVA_MANIFEST_REPOSITORY instead of
+    # LAVA_MANIFEST_BRANCH
+    if [ -n "$LAVA_MANIFEST_BRANCH" ]; then
+        if [ "$LAVA_MANIFEST_BRANCH" != 'lp:lava-manifest' ]; then
+            echo "ERROR: You have a custom LAVA_MANIFEST_BRANCH configuration in instance.conf"
+            echo "       You need to manually change it to point to a git repository now."
+            echo
+            echo "In $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf, replace"
+            echo "  LAVA_MANIFEST_BRANCH=$LAVA_MANIFEST_BRANCH"
+            echo "with"
+            echo "  LAVA_MANIFEST_REPOSITORY=/url/to/git/repository"
+            echo "  LAVA_MANIFEST_BRANCH=master"
+            exit 1
+        fi
+    fi
+    LAVA_CONFIG_VERSION=6
+}
+
 _load_configuration() {
     LAVA_INSTANCE=$1
 
@@ -205,8 +225,9 @@ LAVA_CONFIG_VERSION='$LAVA_CONFIG_VERSION'
 LAVA_PREFIX='$LAVA_PREFIX'
 # Instance name
 LAVA_INSTANCE='$LAVA_INSTANCE'
-# The lava-server branch used by upgrade
-LAVA_MANIFEST_BRANCH='$LAVA_MANIFEST_BRANCH'
+# The lava-server repository used by upgrade
+LAVA_MANIFEST_REPOSITORY='$LAVA_MANIFEST_REPOSITORY'
+LAVA_MANIFEST_HEAD='$LAVA_MANIFEST_HEAD'
 LAVA_BUILDOUT_CFG='$LAVA_BUILDOUT_CFG'
 # System configuration (Unix-level)
 LAVA_SYS_USER='$LAVA_SYS_USER'
@@ -535,7 +556,7 @@ install_fs() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/tmp
 
     # For buildout
-    bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/code
     ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
 
     # Allow apache (running as www-data) to read our public web files
@@ -1091,7 +1112,7 @@ wizard_app() {
 
 
 install_app() {
-    echo "Installing/upgrading application code from a revision of $LAVA_MANIFEST_BRANCH"
+    echo "Installing/upgrading application code from $LAVA_MANIFEST_REPOSITORY ($LAVA_MANIFEST_HEAD)"
 
     if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf ]; then
         echo "Generating $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/settings.conf for PRODUCTION"
@@ -1123,18 +1144,38 @@ SETTINGS_CONF
     fi
 
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
-    local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/r$LAVA_REVNO"
+
+    # create or update local cache of the manifest git-repo
+    manifest_cache_name=$(echo "$LAVA_MANIFEST_REPOSITORY" | sed -e 's/[^a-zA-Z0-9]/_/g')
+    manifest_cache="$LAVA_PREFIX/$LAVA_INSTANCE/code/cache-${manifest_cache_name}"
+    if [ -d "$manifest_cache" ]; then
+        echo "Updating $manifest_cache ..."
+        (cd "$manifest_cache" && git pull)
+    else
+        git clone "$LAVA_MANIFEST_REPOSITORY" "$manifest_cache"
+    fi
+
+    # determine version number from $LAVA_MANIFEST_REPOSITORY and
+    # $LAVA_MANIFEST_HEAD
+    #
+    # If there is no viable version number, use YYYY-MM-DD-COMMITHASH
+    local gitrev=$( cd "$manifest_cache" && git describe "$LAVA_MANIFEST_HEAD" --tags 2>/dev/null || git log --max-count=1 --pretty=%ad-%h --date=short $LAVA_MANIFEST_HEAD )
+
+    local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/$gitrev"
 
     set -ex
     if [ ! -e ${code} ]; then
-        bzr branch -r $LAVA_REVNO $LAVA_MANIFEST_BRANCH $code
+        mkdir ${code}
+        mkdir ${code}/local
+        (cd "$manifest_cache" && git archive "$LAVA_MANIFEST_HEAD") | (cd "$code" && tar x)
         mkdir ${code}/bin
         [ -d $LAVA_PREFIX/$LAVA_INSTANCE/code/current/local ] && \
             find $LAVA_PREFIX/$LAVA_INSTANCE/code/current/local \
             -maxdepth 1 -type l -exec cp -P \{} $code/local/ \;
         ln -s ${venv}/bin/{uwsgi,buildout} ${code}/bin/
+        _create_buildout_caches
         ln -s $LAVA_DOWNLOAD_CACHE ${code}/download-cache
-        ln -s $LAVA_BRANCH_CACHE ${code}/branch-cache
+        ln -s $LAVA_GIT_CACHE ${code}/git-cache
         ln -s $LAVA_EGG_CACHE ${code}/eggs
     fi
     # If LAVA_BUILDOUT_CFG does not specify a file in the branch,
@@ -1151,7 +1192,7 @@ SETTINGS_CONF
 
     gen_lava_dispatcher_config
 
-    ln -sfT $code $LAVA_PREFIX/$LAVA_INSTANCE/code/current
+    ln -sfT $(basename $code) $LAVA_PREFIX/$LAVA_INSTANCE/code/current
 }
 
 
@@ -1362,6 +1403,16 @@ ensure_downloaded_check_sha256 () {
     echo "$sha256  $filename" | sha256sum -c || die "checksum mismatch on $filename"
 }
 
+_create_buildout_caches() {
+    echo "Creating buildout caches"
+    sudo mkdir -p $LAVA_EGG_CACHE
+    sudo chown $(whoami):$(id -gn) $LAVA_EGG_CACHE
+    sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
+    sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
+    sudo mkdir -p $LAVA_GIT_CACHE
+    sudo chown $(whoami):$(id -gn) $LAVA_GIT_CACHE
+}
+
 cmd_setup() {
     SETUP_VER=0
     if [ -e $LAVA_PREFIX/.setup ]; then
@@ -1406,13 +1457,7 @@ cmd_setup() {
         sudo chown $(whoami):$(id -gn) $LAVA_ROOT
         sudo chown $(whoami):$(id -gn) $LAVA_PREFIX
 
-        echo "Creating buildout caches"
-        sudo mkdir -p $LAVA_EGG_CACHE
-        sudo chown $(whoami):$(id -gn) $LAVA_EGG_CACHE
-        sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
-        sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
-        sudo mkdir -p $LAVA_BRANCH_CACHE
-        sudo chown $(whoami):$(id -gn) $LAVA_BRANCH_CACHE
+        _create_buildout_caches
         pushd $LAVA_DOWNLOAD_CACHE/dist
         ensure_downloaded_check_sha256 \
             http://pypi.python.org/packages/source/d/distribute/distribute-0.6.24.tar.gz \
@@ -1674,7 +1719,6 @@ _banner() {
 
 cmd_install() {
     export LAVA_INSTANCE=$1
-    export LAVA_REVNO=$2
 
     check_min_version
     _banner
@@ -1682,12 +1726,6 @@ cmd_install() {
     if [ -z "$LAVA_INSTANCE" ]; then
         echo "You need to pass the name of the instance to create as first argument"
         return
-    fi
-
-    if [ -z "$LAVA_REVNO" ]; then
-        echo -n "Determining manifest revno to deploy... "
-        LAVA_REVNO="$(bzr revno $LAVA_MANIFEST_BRANCH)"
-        echo $LAVA_REVNO
     fi
 
     # Sanity checking, ensure that instance does not exist yet
@@ -1705,7 +1743,6 @@ cmd_install() {
 
 cmd_upgrade() {
     export LAVA_INSTANCE=$1
-    export LAVA_REVNO=$2
 
     check_min_version
     _banner
@@ -1716,12 +1753,6 @@ cmd_upgrade() {
     fi
 
     _load_configuration "$LAVA_INSTANCE"
-
-    if [ -z "$LAVA_REVNO" ]; then
-        echo -n "Determining manifest revno to deploy... "
-        LAVA_REVNO="$(bzr revno $LAVA_MANIFEST_BRANCH)"
-        echo $LAVA_REVNO
-    fi
 
     # Sanity checking, ensure that instance exist
     if [ \! -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
@@ -1761,7 +1792,7 @@ _maybe_pre_convert_to_buildout () {
     LAVA_BUILDOUT_CFG="${LAVA_BUILDOUT_CFG-buildout.cfg}"
     _save_config
     install_buildout
-    bzr init-repo $LAVA_PREFIX/$LAVA_INSTANCE/code
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/code
     set +xe
 }
 
