@@ -1043,7 +1043,6 @@ install_docs() {
         docdir=$(head -n 1 $egglink)/doc
         if [ -d $docdir ]; then
             echo "INFO: building documentation for $component from $docdir"
-            sphinx-build -b html $docdir $base/$component
             ln -sfT $docdir $lava_deployment_tool_docs/$component
         fi
     done
@@ -1055,7 +1054,6 @@ install_docs() {
         docdir=$dir/doc
         if [ -d $docdir ]; then
             echo "INFO: building documentation for $component from $docdir"
-            sphinx-build -b html $docdir $base/$component
             ln -sfT $docdir $lava_deployment_tool_docs/$component
         fi
     done
