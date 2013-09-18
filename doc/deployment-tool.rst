@@ -298,7 +298,7 @@ There are some points to consider:
    are not affected by this step.
 
 3) Upgrades require network access. If you are behind a firewall or a
-   corporate http proxy you may experience failures. Please note that the
+   corporate HTTP proxy you may experience failures. Please note that the
    upgrade process does not install components without first downloading all of
    the required pieces so in case of a network failure your current installation
    should not be affected. While typically only HTTP and HTTPS protocols are
