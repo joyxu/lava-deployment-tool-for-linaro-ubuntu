@@ -533,7 +533,7 @@ should be commented and LAVA instance restarted (``sudo restart lava``).
 
 Alternatively, OPENID_SSO_SERVER_URL can be set to point to another OpenID
 server with support for "OpenID 2.0 identifier select mode" to support
-SSO within your orginization. See `django-openid-auth documentation`_ for
+SSO within your organization. See `django-openid-auth documentation`_ for
 more information.
 
 .. _`django-openid-auth documentation`: http://bazaar.launchpad.net/~django-openid-auth/django-openid-auth/trunk/files
