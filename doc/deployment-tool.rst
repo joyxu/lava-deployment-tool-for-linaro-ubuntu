@@ -500,7 +500,7 @@ User authentication
 LAVA frontend is developed using Django_ web application framework
 and user authentication and authorization is based on standard `Django
 auth subsystems`_. This means that it is fairly easy to integrate authentication
-against any source for which Django backend exists. Dicussed below are
+against any source for which Django backend exists. Discussed below are
 tested and supported authentication methods for LAVA.
 
 .. _Django: https://www.djangoproject.com/
