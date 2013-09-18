@@ -12,14 +12,9 @@ deployment. For that it is likely we will turn to Juju_.
 Getting LAVA Deployment Tool
 ============================
 
-LAVA Deployment Tool could be downloaded from this URL_.
+LAVA Deployment Tool can be downloaded from git:
 
-.. _URL: https://launchpad.net/lava-deployment-tool/+download
-
-Alternatively in order to get the latest development code, do a bzr
-checkout as follows (install bzr if it is not available):
-
- $ bzr branch lp:lava-deployment-tool
+ $ git clone http://git.linaro.org/git-ro/lava/lava-deployment-tool.git
 
 Quickstart
 ==========
@@ -444,23 +439,23 @@ drop the branch or a symlink to the branch in
 ``/srv/lava/instances/$instances/code/current/local`` and re-run
 buildout.  For example::
 
-  $ bzr branch lp:lava-scheduler ~/src/my-scheduler-branch
+  $ git clone http://git.linaro.org/git-ro/lava/lava-scheduler.git
   $ cd /srv/lava/instances/$instance/code/current
-  $ ln -s ~/src/my-scheduler-branch local/ # The name of the symlink doesn't matter;
+  $ ln -s ~/src/lava-scheduler local/      # The name of the symlink doesn't matter;
                                            # buildout looks at the setup.py
   $ ./bin/buildout
 
 Non-production instances contain some scripts that can help create and
 remove symlinks::
 
-  $ bzr branch lp:lava-scheduler ~/src/my-scheduler-branch
+  $ git clone http://git.linaro.org/git-ro/lava/lava-scheduler.git
   $ . /srv/lava/instances/testinstance/bin/activate
-  $ lava-develop-local ~/src/my-scheduler-branch
+  $ lava-develop-local ~/src/lava-scheduler
   Determining egg name... lava-scheduler
-  + ln -sfT ~/src/my-scheduler-branch /srv/lava/instances/testinstance/code/current/local/lava-scheduler
+  + ln -sfT ~/src/lava-scheduler /srv/lava/instances/testinstance/code/current/local/lava-scheduler
   ...
   ... hack ...
-  $ lava-undevelop-local ~/src/my-scheduler-branch
+  $ lava-undevelop-local ~/src/lava-scheduler
   removed /srv/lava/instances/testinstance/code/current/local/lava-scheduler
 
 Limited Deployments
