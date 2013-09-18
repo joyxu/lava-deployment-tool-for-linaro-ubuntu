@@ -43,7 +43,7 @@ cat <<INSTRUCTIONS
 -----------------------------------------------------------------------
 
 You are all set! Now browse to http://localhost:8080/ to check out your
-shiny new LAVA instance!
+new LAVA instance!
 
 Run \`vagrant ssh\` to get a shell in the VM. This copy of
 lava-deployment-tool is mounted on the VM at /vagrant.
