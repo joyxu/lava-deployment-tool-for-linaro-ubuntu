@@ -92,7 +92,7 @@ instance by entering http://localhost:8080/ in your web browser.
 Software Requirements
 =====================
 
-We currently recommmend using Ubuntu 12.04.  This tool should work on
+We currently recommend using Ubuntu 12.04.  This tool should work on
 Ubuntu versions 11.10 (Oneiric) and newer.
 
 If you'd like to help us with other distributions feel free to contact
