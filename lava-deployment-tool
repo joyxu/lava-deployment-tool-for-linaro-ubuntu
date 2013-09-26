@@ -61,7 +61,7 @@ os_check() {
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
                     LAVA_WORKER_LIST="apache2 apache2-dev whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev mercurial conmux linaro-image-tools unzip bzr sshfs postgresql-client postgresql-common libpq-dev"
-                    LAVA_SERVER_ADD="apache2 apache2-dev postgresql lava-coordinator python-sphinx python-versiontools"
+                    LAVA_SERVER_ADD="postgresql lava-coordinator python-sphinx python-versiontools"
                     ;;
                 quantal|raring)
                     #apache2-dev is no longer available. use apache2-threaded-dev instead.
@@ -69,7 +69,7 @@ os_check() {
                     export LAVA_PYTHON=python2.7
                     export LAVA_SUPPORTED=1
                     LAVA_WORKER_LIST="apache2 apache2-threaded-dev whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev mercurial conmux linaro-image-tools unzip bzr sshfs postgresql-client postgresql-common libpq-dev"
-                    LAVA_SERVER_ADD="apache2 apache2-threaded-dev postgresql lava-coordinator python-sphinx python-versiontools"
+                    LAVA_SERVER_ADD="postgresql lava-coordinator python-sphinx python-versiontools"
                     ;;
             esac
             ;;
