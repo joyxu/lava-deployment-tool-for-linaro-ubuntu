@@ -1137,7 +1137,21 @@ SETTINGS_CONF
     #
     # If there is no viable version number, use YYYY-MM-DD-COMMITHASH
     local gitrev=$( cd "$manifest_cache" && _git_describe "$LAVA_MANIFEST_HEAD" || _git_describe "origin/$LAVA_MANIFEST_HEAD")
-    echo "Using manifest from $LAVA_MANIFEST_REPOSITORY @ $LAVA_MANIFEST_HEAD ($gitrev)"
+
+    if [ -z "$gitrev" ]; then
+        echo
+        echo "ERROR: could not determine git revision of lava-manifest"
+        echo "  Repository: $LAVA_MANIFEST_REPOSITORY"
+        echo "        Head: $LAVA_MANIFEST_HEAD"
+        echo
+        exit 1
+    fi
+
+    echo
+    echo "Using manifest from"
+    echo "  Repository: $LAVA_MANIFEST_REPOSITORY"
+    echo "        Head: $LAVA_MANIFEST_HEAD ($gitrev)"
+    echo
 
     local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/$gitrev"
 
