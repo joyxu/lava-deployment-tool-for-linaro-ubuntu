@@ -1082,6 +1082,11 @@ wizard_app() {
     return 0
 }
 
+_git_describe() {
+    local head="$1"
+    git describe "$head" --tags 2>/dev/null || \
+        git log --max-count=1 --pretty=%ad-%h --date=short "$head" 2>/dev/null
+}
 
 install_app() {
     echo "Installing/upgrading application code from $LAVA_MANIFEST_REPOSITORY ($LAVA_MANIFEST_HEAD)"
@@ -1131,7 +1136,8 @@ SETTINGS_CONF
     # $LAVA_MANIFEST_HEAD
     #
     # If there is no viable version number, use YYYY-MM-DD-COMMITHASH
-    local gitrev=$( cd "$manifest_cache" && git describe "$LAVA_MANIFEST_HEAD" --tags 2>/dev/null || git log --max-count=1 --pretty=%ad-%h --date=short $LAVA_MANIFEST_HEAD )
+    local gitrev=$( cd "$manifest_cache" && _git_describe "$LAVA_MANIFEST_HEAD" || _git_describe "origin/$LAVA_MANIFEST_HEAD")
+    echo "Using manifest from $LAVA_MANIFEST_REPOSITORY @ $LAVA_MANIFEST_HEAD ($gitrev)"
 
     local code="$LAVA_PREFIX/$LAVA_INSTANCE/code/$gitrev"
 
@@ -1139,7 +1145,7 @@ SETTINGS_CONF
     if [ ! -e ${code} ]; then
         mkdir ${code}
         mkdir ${code}/local
-        (cd "$manifest_cache" && git archive "$LAVA_MANIFEST_HEAD") | (cd "$code" && tar x)
+        (cd "$manifest_cache" && git archive "$LAVA_MANIFEST_HEAD" || git archive "origin/$LAVA_MANIFEST_HEAD") | (cd "$code" && tar x)
         mkdir ${code}/bin
         [ -d $LAVA_PREFIX/$LAVA_INSTANCE/code/current/local ] && \
             find $LAVA_PREFIX/$LAVA_INSTANCE/code/current/local \
