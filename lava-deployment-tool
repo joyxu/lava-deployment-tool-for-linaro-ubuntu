@@ -708,6 +708,10 @@ wizard_coordinator () {
     true
 }
 
+defaults_coordinator () {
+    true
+}
+
 defaults_buildout () {
     true
 }
