@@ -324,6 +324,19 @@ wizard_get_master() {
     echo "LAVA worker nodes need a master defined to configure the"
     echo "database and sshfs connections"
     echo
+    echo "To work with remote nodes, the Master needs to be configured"
+    echo "to allow the database to listen to the workers."
+    echo
+    echo "Ensure that the Master allows remote access from workers"
+    echo "before submitting jobs or health checks."
+    echo
+    echo "If the Master does not already have remote workers, run:"
+    echo "export LAVA_DB_ALLOWREMOTE=yes"
+    echo "./lava-deployment-tool upgrade <INSTANCE>"
+    echo
+    echo "You can continue setting up the worker, as long as"
+    echo "remote database access is enabled before jobs are submitted."
+    echo
     _read_input "Please enter the address of the master [${LAVA_MASTER}] :" LAVA_MASTER $LAVA_MASTER
 }
 
