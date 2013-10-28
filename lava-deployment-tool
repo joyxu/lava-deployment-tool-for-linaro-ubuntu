@@ -1060,7 +1060,12 @@ install_docs() {
         docdir=$(head -n 1 $egglink)/doc
         if [ -d $docdir ]; then
             echo "INFO: building documentation for $component from $docdir"
-            ln -sfT $docdir $lava_deployment_tool_docs/$component
+            if [ $component = "lava-server" ]
+            then
+                ln -sf $docdir/* $lava_deployment_tool_docs/
+            else
+                ln -sfT $docdir $lava_deployment_tool_docs/$component
+            fi
         fi
     done
 
@@ -1071,7 +1076,12 @@ install_docs() {
         docdir=$dir/doc
         if [ -d $docdir ]; then
             echo "INFO: building documentation for $component from $docdir"
-            ln -sfT $docdir $lava_deployment_tool_docs/$component
+            if [ $component = "lava-server" ]
+            then
+                ln -sf $docdir/* $lava_deployment_tool_docs/
+            else
+                ln -sfT $docdir $lava_deployment_tool_docs/$component
+            fi
         fi
     done
 

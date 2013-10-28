@@ -1,5 +1,5 @@
-LAVA Deployment Tool
-********************
+LAVA Installation
+*****************
 
 LAVA Deployment Tool is meant to assist you setting up LAVA on your machine.
 The tool is suitable for both personal and more "production" installations that
