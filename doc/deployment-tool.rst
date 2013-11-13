@@ -192,6 +192,23 @@ You can override details about how to construct the instance:
 
      $ ./lava-deployment-tool install NAME <revno>
 
+ 4. Pay attention to the hostname in the web configuration part. The
+    installer will not make the LAVA instance the default virtualhost
+    in the apache server. By default the installer will use the output
+    of `hostname --fqdn` as the hostname in the Apache config. You can
+    override that by setting the LAVA_APACHE_VHOST environment
+    variable, or replying to the corresponing prompt at the
+    configuartion wizard. Example::
+
+     $ LAVA_APACHE_VHOST=mylavasite.com ./lava-deployment-tool install NAME
+
+    If you want LAVA to be the only web application in that server, you
+    can disable the default apache virtualhost before installing LAVA so
+    that any hostname users use to reach your server, they will get the
+    LAVA web interface::
+
+     $ sudo a2dissite 000-default
+
 See `different kinds of deployment`_ below for more about customizing
 instances.
 
