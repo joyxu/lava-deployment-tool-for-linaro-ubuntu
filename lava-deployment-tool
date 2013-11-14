@@ -940,7 +940,7 @@ wizard_web_hosting() {
     echo "Please enter the hostname where you want your LAVA server"
     echo "web interface to be accessible. This will the determine the"
     echo "name of the Apache virtualhost used for LAVA, and the hostname"
-    echo "users will use the access the LAVA web interface."
+    echo "users will use to access the LAVA web interface."
     echo
     _read_input "Hostname[$LAVA_APACHE_VHOST]: " LAVA_APACHE_VHOST "$LAVA_APACHE_VHOST"
 
