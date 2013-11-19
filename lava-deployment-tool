@@ -2039,6 +2039,12 @@ cmd_restore-db () {
     set -e
     LAVA_INSTANCE=${1}
     local SNAPSHOT_ID=${2}
+
+    if [ -z "$LAVA_INSTANCE" -o -z "$SNAPSHOT_ID" ]; then
+        echo "Usage: lava-deployment-tool restore-db INSTANCE SNAPSHOT_ID"
+        exit 1
+    fi
+
     SNAPSHOT="$(_find_snapshot $LAVA_INSTANCE $SNAPSHOT_ID)"
 
     _load_configuration "$LAVA_INSTANCE"
@@ -2071,6 +2077,12 @@ cmd_restore() {
     set -e
     LAVA_INSTANCE=${1}
     local SNAPSHOT_ID=${2}
+
+    if [ -z "$LAVA_INSTANCE" -o -z "$SNAPSHOT_ID" ]; then
+        echo "Usage: lava-deployment-tool restore INSTANCE SNAPSHOT_ID"
+        exit 1
+    fi
+
     SNAPSHOT="$(_find_snapshot $LAVA_INSTANCE $SNAPSHOT_ID)"
 
     _load_configuration "$LAVA_INSTANCE"
