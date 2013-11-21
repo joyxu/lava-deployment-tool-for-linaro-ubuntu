@@ -183,10 +183,14 @@ evolve_config_5_6() {
 _load_configuration() {
     LAVA_INSTANCE=$1
 
-    # Persistent config
-    if [ -e $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf ]; then
+    # backwards compatible config location
+    if [ -f $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf ]; then
         . $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf
+        _save_config
         # TODO: ensure we have all essential variables or we die verbosely
+    # Persistent config
+    elif [ -e $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/instance.conf ]; then
+        . $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/instance.conf
     else
         # Legacy configs, no lava- prefix
         export LAVA_SYS_USER=$LAVA_INSTANCE
@@ -238,6 +242,7 @@ LAVA_DEV_MODE='$LAVA_DEV_MODE'
 # PostgreSQL configuration
 LAVA_DB_NAME='$LAVA_DB_NAME'
 LAVA_DB_USER='$LAVA_DB_USER'
+LAVA_DB_SERVER="$dbserver"
 LAVA_DB_PORT='$LAVA_DB_PORT'
 LAVA_DB_PASSWORD='$LAVA_DB_PASSWORD'
 # Scheduler configuration
@@ -250,7 +255,17 @@ INSTANCE_CONF
 
 _save_config() {
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/
-    _show_config >$LAVA_PREFIX/$LAVA_INSTANCE/instance.conf
+    if [ -f $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/default_database.conf ]
+    then
+      . $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/default_database.conf
+    fi
+    _show_config >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/instance.conf
+    # backwards compatilibity
+    if [ -f $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf ]
+    then
+      rm $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf
+      ln -s $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/instance.conf $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf
+    fi
 }
 
 
@@ -1565,7 +1580,7 @@ script
     for dir in \`ls /srv/lava/instances\`; do
         LAVA_INSTANCE=\`basename \$dir\`
 # TODO: Check if the instance should start automatically on boot
-        if [ -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+        if [ -e $LAVA_PREFIX/\$LAVA_INSTANCE/etc/lava-server/instance.conf ]; then
             start lava-instance LAVA_INSTANCE=\$LAVA_INSTANCE
         fi
     done
@@ -1591,7 +1606,7 @@ export LAVA_INSTANCE
 
 pre-start script
     # Don't start unless the instance configuration file is present
-    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/etc/lava-server/instance.conf ]; then
         stop
     else
         logger "LAVA instance (\$LAVA_INSTANCE) starting..."
@@ -1634,7 +1649,7 @@ respawn
 # Announce activity
 pre-start script
     # Don't start unless the instance configuration file is present
-    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/etc/lava-server/instance.conf ]; then
         stop
     else
         # Announce uWSGI becoming online
@@ -1662,7 +1677,7 @@ kill signal SIGQUIT
 # Run uWSGI with instance specific configuration file
 script
     # Load instance settings
-    . $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+    . $LAVA_PREFIX/\$LAVA_INSTANCE/etc/lava-server/instance.conf
     # Simluate virtualenv without spawing anything
     export VIRTUAL_ENV=$LAVA_PREFIX/\$LAVA_INSTANCE
     export PATH=\$VIRTUAL_ENV/bin:\$PATH
@@ -1690,10 +1705,10 @@ respawn
 # Announce workers becoming online
 pre-start script
     # Don't start unless the instance configuration file is present
-    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf ]; then
+    if [ ! -e $LAVA_PREFIX/\$LAVA_INSTANCE/etc/lava-server/instance.conf ]; then
         stop
     else
-        . $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+        . $LAVA_PREFIX/\$LAVA_INSTANCE/etc/lava-server/instance.conf
         # We only prevent the scheduler from running if
         # LAVA_SCHEDULER_ENABLED is set and set to 'no', to be most
         # compatible with the previous behaviour of always running the
@@ -1720,7 +1735,7 @@ end script
 
 script
     # Load instance settings
-    . $LAVA_PREFIX/\$LAVA_INSTANCE/instance.conf
+    . $LAVA_PREFIX/\$LAVA_INSTANCE/etc/lava-server/instance.conf
     # Simluate virtualenv without spawing anything
     export VIRTUAL_ENV=$LAVA_PREFIX/\$LAVA_INSTANCE
     export PATH=\$VIRTUAL_ENV/bin:\$PATH
