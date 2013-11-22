@@ -254,7 +254,7 @@ INSTANCE_CONF
 
 
 _save_config() {
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/
+    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/
     if [ -f $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/default_database.conf ]
     then
       . $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/default_database.conf
@@ -264,6 +264,9 @@ _save_config() {
     if [ -f $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf ]
     then
       rm $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf
+    fi
+    if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf ]
+    then
       ln -s $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/instance.conf $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf
     fi
 }
