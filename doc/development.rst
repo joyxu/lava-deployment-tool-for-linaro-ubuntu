@@ -75,9 +75,9 @@ Ubuntu 12.04.
 The best way to create a development environment is to install a LAVA
 instance in development mode::
 
-    $ lava-deployment-tool --developer-mode development
+    $ lava-deployment-tool install --developer-mode development
 
-In the above example our development instance is conveniently callled
+In the above example our development instance is conveniently called
 "development".
 
 The next step is to install a local repository into the instance. Let's
