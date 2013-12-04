@@ -71,6 +71,12 @@ os_check() {
                     LAVA_WORKER_LIST="apache2 apache2-threaded-dev whiptail python-virtualenv python-pip git build-essential $LAVA_PYTHON-dev libxml2-dev mercurial conmux linaro-image-tools unzip bzr sshfs postgresql-client postgresql-common libpq-dev"
                     LAVA_SERVER_ADD="postgresql lava-coordinator python-sphinx python-versiontools"
                     ;;
+                saucy)
+                    export LAVA_PYTHON=python2.7
+                    export LAVA_SUPPORTED=1
+                    LAVA_WORKER_LIST="apache2 apache2-dev libapache2-mod-uwsgi whiptail python-virtualenv python-pip python-pyrex git build-essential $LAVA_PYTHON-dev libxml2-dev mercurial conmux linaro-image-tools unzip bzr sshfs postgresql-client postgresql-common libpq-dev"
+                    LAVA_SERVER_ADD="postgresql lava-coordinator python-sphinx python-versiontools"
+                    ;;
             esac
             ;;
     esac
