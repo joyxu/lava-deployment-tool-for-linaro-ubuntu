@@ -10,7 +10,7 @@ LAVA_ROOT=/srv/lava
 LAVA_PREFIX=$LAVA_ROOT/instances
 
 # Deploy revisions of this branch
-LAVA_MANIFEST_REPOSITORY="${LAVA_MANIFEST_REPOSITORY-http://git.linaro.org/git-ro/lava/lava-manifest.git}"
+LAVA_MANIFEST_REPOSITORY="${LAVA_MANIFEST_REPOSITORY-http://git.linaro.org/git/lava/lava-manifest.git}"
 LAVA_MANIFEST_HEAD="${LAVA_MANIFEST_HEAD-master}"
 
 # Where to cache the eggs, branches and downloads for buildbot
