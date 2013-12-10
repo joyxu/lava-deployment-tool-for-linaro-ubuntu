@@ -32,7 +32,7 @@ REQUIRED_LAVA_CONFIG_VERSION=7
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
 
-# Installation and configuration steps (all the wizard_xxx install_xxx functions)
+# Installation and configuration steps (all the wizard_xxx install_xxx upgrade_xxx functions)
 LAVA_INSTALL_STEPS="devmode user fs buildout database web_hosting app config_app docs"
 LAVA_WORKER_STEPS="get_master devmode user fs buildout remote_database web_hosting app config_app remote_fs coordinator worker_config"
 
@@ -630,7 +630,10 @@ install_fs() {
 
     # For buildout
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/code
-    ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
+    if [ ! -e $LAVA_PREFIX/$LAVA_INSTANCE/bin ]
+    then
+        ln -s $LAVA_PREFIX/$LAVA_INSTANCE/code/current/bin $LAVA_PREFIX/$LAVA_INSTANCE
+    fi
 
     # Allow apache (running as www-data) to read our public web files
     sudo chgrp -R www-data $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/
@@ -715,10 +718,10 @@ user_allow_other
 EOF
     fi
 
-    
+
     echo "Please add the following public key into your master node's "
     echo " $LAVA_REMOTE_FS_DIR/home/.ssh/authorized_keys file"
-    echo 
+    echo
     sshdir=$(eval echo ~$LAVA_SYS_USER)/.ssh
     echo "-------- WORKER NODE PUBLIC KEY STARTS HERE --------"
     cat $sshdir/id_rsa.pub
@@ -795,6 +798,67 @@ wizard_buildout () {
 
 wizard_docs () {
     true
+}
+
+upgrade_app () {
+    # executed before the upgrade steps.
+    true
+}
+
+upgrade_docs () {
+    install_docs
+}
+
+upgrade_devmode () {
+    true
+}
+
+upgrade_user () {
+    true
+}
+
+upgrade_fs () {
+    install_fs
+}
+
+upgrade_buildout () {
+    true
+}
+
+upgrade_database () {
+    # "upgrades" to the database need to be done with south migrations.
+    if [[ $LAVA_DB_ALLOWREMOTE == "yes" ]]
+    then
+      allow_remote_postgres
+    fi
+}
+
+upgrade_web_hosting () {
+    true
+}
+
+upgrade_config_app () {
+    install_config_app
+}
+
+upgrade_get_master () {
+    true
+}
+
+upgrade_remote_database () {
+    install_remote_database
+}
+
+upgrade_remote_fs () {
+    true
+}
+
+upgrade_coordinator () {
+    install_coordinator
+}
+
+upgrade_worker_config () {
+    install_worker_config
 }
 
 install_buildout () {
@@ -920,22 +984,42 @@ DEFAULT_DATABASE_CONF
     if [[ $LAVA_DB_ALLOWREMOTE == "yes" ]]
     then
       allow_remote_postgres
-    fi 
+    fi
 }
 
 allow_remote_postgres() {
+    restart=0
     echo "Editing the postgres config files to allow remote connections"
     for pgfile in `find /etc/postgresql -name postgresql.conf`
     do
-        TMPFILE=`mktemp`
-        (cat $pgfile | grep -v listen_addresses; echo "listen_addresses = '*'") > $TMPFILE
-        cat $TMPFILE | sudo tee $pgfile > /dev/null
-    done 
+        CHK=`grep "listen_addresses = '\*'" $pgfile 2>/dev/null || true`
+        if [ -z "$CHK" ]
+        then
+            echo "Need to configure listen_addresses in $pgfile"
+            TMPFILE=`mktemp`
+            (cat $pgfile | grep -v listen_addresses; echo "listen_addresses = '*'") > $TMPFILE
+            cat $TMPFILE | sudo tee $pgfile > /dev/null
+            restart=1
+        else
+            echo "$pgfile already modified. Server should be listening."
+        fi
+    done
+    ALLOW="host    all    all    0.0.0.0/0    trust"
     for hbafile in `find /etc/postgresql -name pg_hba.conf`
     do
-        echo "host    all    all    0.0.0.0/0    trust" | sudo tee -a $hbafile > /dev/null
+        CHK=`sudo grep "${ALLOW}" $hbafile 2>/dev/null || true`
+        if [ -z "${CHK}" ]
+        then
+            echo "host    all    all    0.0.0.0/0    trust" | sudo tee -a $hbafile > /dev/null
+            restart=1
+        else
+            echo "$hbafile already configured."
+        fi
     done
-    sudo /etc/init.d/postgresql restart
+    if [ $restart = 1 ]
+    then
+        sudo /etc/init.d/postgresql restart
+    fi
 }
 
 defaults_remote_database() {
@@ -1414,7 +1498,7 @@ install_config_app() {
         export LAVA_SCHEDULER_ENABLED='yes'
         _save_config
     fi
-    
+
     if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ] ; then
         echo "Remote worker install skipping database migrations and static files"
         echo "Restarting instance so changes can be picked up..."
@@ -1455,13 +1539,6 @@ install_config_app() {
         set -x
         sudo start lava-instance LAVA_INSTANCE=$LAVA_INSTANCE
         set +x
-    fi
-    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ] ; then
-        install_docs
-        # the coordinator call is idempotent
-        install_coordinator
-    else
-        install_worker_config
     fi
     # Get out of virtualenv
     deactivate
@@ -1883,9 +1960,11 @@ cmd_upgrade() {
     fi
 
     _maybe_pre_convert_to_buildout
-    install_app
+    upgrade_app
     _maybe_post_convert_to_buildout
-    install_config_app
+    for upgrade_step in $LAVA_INSTALL_STEPS; do
+        upgrade_$upgrade_step
+    done
 }
 
 
@@ -2455,6 +2534,13 @@ Options:
   Forces potentially destructive actions to be performed, even in
   non-interactive mode.
 
+Environment variables:
+
+SKIP_ROOT_CHECK=yes      - allow root to run lava-deployment-tool
+LAVA_DB_ALLOWREMOTE=yes  - allow remote access to the postgres database
+                            to setup or migrate a master to support
+                            remote workers.
+
 See the README file for instructions
 END_OF_USAGE
 }
@@ -2559,6 +2645,14 @@ main() {
             ;;
         list)
             cmd_list "$@"
+            ;;
+        upgrade_*)
+            set -x
+            set -e
+            _load_configuration "$@"
+            $cmd
+            set +x
+            set +e
             ;;
         version)
             echo "LAVA Deployment Tool, version $LAVA_DEPLOYMENT_TOOL_VERSION."
