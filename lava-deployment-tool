@@ -27,7 +27,7 @@ LAVA_UWSGI=1.0.3
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=29
 # Current required version of instance config
-REQUIRED_LAVA_CONFIG_VERSION=6
+REQUIRED_LAVA_CONFIG_VERSION=7
 
 # Check if this installation is supported
 export LAVA_SUPPORTED=0
@@ -184,6 +184,34 @@ evolve_config_5_6() {
         fi
     fi
     LAVA_CONFIG_VERSION=6
+}
+
+evolve_config_6_7() {
+    if [ ${LAVA_MANIFEST_REPOSITORY} = "http://git.linaro.org/git-ro/lava/lava-manifest.git" ]
+    then
+        if [ "$LAVA_NON_INTERACTIVE" = yes ]; then
+            LAVA_MANIFEST_REPOSITORY="http://git.linaro.org/git/lava/lava-manifest.git"
+            _save_config
+        else
+            echo "ERROR: You have an old LAVA_MANIFEST_REPOSITORY configuration in"
+            echo "       $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/instance.conf"
+            echo "       LAVA has migrated the git repository and you need to manually change it to"
+            echo "       point to http://git.linaro.org/git/lava/lava-manifest.git now"
+            echo
+            echo "In $LAVA_PREFIX/$LAVA_INSTANCE/instance.conf, replace"
+            echo "  LAVA_MANIFEST_REPOSITORY=http://git.linaro.org/git-ro/lava/lava-manifest.git"
+            echo "with"
+            echo "  LAVA_MANIFEST_REPOSITORY=http://git.linaro.org/git/lava/lava-manifest.git"
+            _read_input "Should this be fixed now? (yes/no)? [yes] " LAVA_EVOLVE_MANIFEST yes
+            if [ $LAVA_EVOLVE_MANIFEST = yes ]; then
+                LAVA_MANIFEST_REPOSITORY="http://git.linaro.org/git/lava/lava-manifest.git"
+                _save_config
+            else
+                exit 1
+            fi
+        fi
+    fi
+    LAVA_CONFIG_VERSION=7
 }
 
 _load_configuration() {
