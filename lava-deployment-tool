@@ -799,10 +799,11 @@ wizard_database() {
     echo
     echo "We will use PostgreSQL to store application state"
     echo "(apart from files that are just files in your filesystem)"
+    echo "Add details from the instance.conf on the master:"
     echo
-    echo "Database name: $LAVA_DB_NAME"
-    echo "Database user: $LAVA_DB_USER"
-    echo "Database port: $LAVA_DB_PORT"
+    echo "Database name (LAVA_DB_NAME): $LAVA_DB_NAME"
+    echo "Database user (LAVA_DB_USER): $LAVA_DB_USER"
+    echo "Database port (LAVA_DB_PORT): $LAVA_DB_PORT"
     if [[ "$LAVA_DB_CUSTOMPWD" == "yes" ]]
     then
       echo "     password: $LAVA_DB_PASSWORD (set by user)"
@@ -1264,13 +1265,17 @@ wizard_config_app() {
     return 0
 }
 
+
+# this is an awkwardly named variable.
 config_lava_dispatcher() {
     echo "Lava Dispatcher Configuration"
     echo "-----------------------------"
 
     echo "LAVA_SERVER_IP"
     echo "^^^^^^^^^^^^^^"
-    echo "This is the IP the device downloads the image parts from"
+    echo "This is the IP of this host, from which the attached devices"
+    echo "can download the image parts."
+    echo "For a worker instance, this is the IP of this worker."
     echo ""
     echo "Here is the list of network device on this host"
 
