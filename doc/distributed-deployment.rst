@@ -38,6 +38,23 @@ Again, LAVA_DB_PASSWORD can be used if you wish to preset the database password,
 
  $ LAVA_DB_PASSWORD=secret LAVA_MASTER=lava-master ./lava-deployment-tool installworker instance_name
 
+Remote databases
+================
+
+``lava-deployment-tool`` remoteworker installations assume the DB resides on the LAVA_MASTER and
+remote worker installations using the prompts will set up your instance using a database on
+LAVA_MASTER. It is possible to use a remote database by using the ``LAVA_DB_SERVER`` variable.
+
+.. note: A remote postgres database only works with remote workers, the master install
+will still install a postgres server as part of the setup task. If you are using a remote
+database, the master instance will need to be configured separately.
+
+*Example command line*::
+
+ $ LAVA_DB_PASSWORD=secret LAVA_DB_SERVER=postgres LAVA_MASTER=lava-master ./lava-deployment-tool installworker instance_name
+
+LAVA_MASTER is still needed to support sshfs connections for results.
+
 Frequently encountered problems
 ===============================
 

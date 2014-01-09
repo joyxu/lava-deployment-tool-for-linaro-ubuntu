@@ -276,7 +276,7 @@ LAVA_DEV_MODE='$LAVA_DEV_MODE'
 # PostgreSQL configuration
 LAVA_DB_NAME='$LAVA_DB_NAME'
 LAVA_DB_USER='$LAVA_DB_USER'
-LAVA_DB_SERVER="$dbserver"
+LAVA_DB_SERVER="$LAVA_DB_SERVER"
 LAVA_DB_PORT='$LAVA_DB_PORT'
 LAVA_DB_PASSWORD='$LAVA_DB_PASSWORD'
 # Scheduler configuration
@@ -292,6 +292,10 @@ _save_config() {
     if [ -f $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/default_database.conf ]
     then
       . $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/default_database.conf
+    fi
+    if [ -n "$LAVA_MASTER" ]
+    then
+        LAVA_DB_SERVER=$LAVA_MASTER
     fi
     _show_config >$LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/instance.conf
     # backwards compatilibity
@@ -947,7 +951,7 @@ wizard_remote_database() {
     echo "(apart from files that are just files in your filesystem)"
     echo
 
-    _read_input "Please enter the server name/IP: " LAVA_DB_SERVER $LAVA_MASTER
+    _read_input "Please enter the server name/IP: " LAVA_DB_SERVER $LAVA_DB_SERVER
     _read_input "Please enter the database name: " LAVA_DB_NAME $LAVA_DB_NAME
     _read_input "Please enter the database user: " LAVA_DB_USER $LAVA_DB_USER
     _read_input "Please enter the database port (empty is OK): " LAVA_DB_PORT 5432
