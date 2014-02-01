@@ -2473,6 +2473,12 @@ main() {
         cmd=help
     fi
 
+    #  For manage command, short-circuit and pass all options as-is.
+    if [ $cmd == "manage" ]; then
+        cmd_manage "$@"
+        exit
+    fi
+
     options="
         -o ndf
         --long non-interactive
@@ -2518,9 +2524,6 @@ main() {
             export LAVA_INSTALL_STEPS=$LAVA_WORKER_STEPS
             os_check
             cmd_${cmd/worker/} "$@"
-            ;;
-        manage)
-            cmd_manage "$@"
             ;;
         backup)
             cmd_backup "$@"
