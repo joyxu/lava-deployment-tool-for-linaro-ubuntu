@@ -1865,12 +1865,21 @@ cmd_upgrade() {
         return
     fi
 
+    # If user specified LAVA_BUILDOUT_CFG, save it from overwriting by
+    # loaded config
+    NEW_LAVA_BUILDOUT_CFG="$LAVA_BUILDOUT_CFG"
     _load_configuration "$LAVA_INSTANCE"
 
     # Sanity checking, ensure that instance exist
     if [ \! -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
         echo "Instance $LAVA_INSTANCE does not exist"
         return
+    fi
+
+    # If user specified non-empty LAVA_BUILDOUT_CFG to upgrade to,
+    # use that in the following process
+    if [ -n "$NEW_LAVA_BUILDOUT_CFG" ]; then
+        LAVA_BUILDOUT_CFG="$NEW_LAVA_BUILDOUT_CFG"
     fi
 
     _maybe_pre_convert_to_buildout
