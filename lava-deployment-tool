@@ -2605,6 +2605,25 @@ main() {
         esac
     done
 
+    local lock_name="$cmd"
+    local instance="$1"
+    if [ -n "$instance" ]; then
+        lock_name="${instance}"
+    fi
+    (
+        if flock -n 9; then
+            run_cmd "$cmd" "$@"
+        else
+            echo "Another instance of ${__FILE_NAME__} is already running"
+            exit 1
+        fi
+    ) 9> /var/lock/lava-deployment-tool-${lock_name}.lock
+}
+
+
+run_cmd() {
+    local cmd="$1"
+    shift
     case "$cmd" in
         ^$|help)
             usage
