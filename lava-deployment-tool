@@ -563,8 +563,11 @@ _ssh_install() {
             sudo -u $LAVA_SYS_USER ssh-keygen -C "ssh key used by LAVA for sshfs" -f $sshdir/id_rsa -t rsa -N ""
         fi
 
-        # we don't want anything under media since this will get mounted
-        sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/*
+        # - we don't want anything under media since this will get mounted
+        # - but only if not already mounted!
+        if [ ! -f $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/.mounted ]; then
+            sudo rm -rf $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/*
+        fi
     else
         ### we are configuring a master
         # Setup the ssh directories in case you want to point workers at this master
@@ -641,11 +644,16 @@ install_fs() {
     # Allow instance user to read all lava-server settings
     sudo chgrp -R $LAVA_SYS_USER $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server
     sudo chmod -R g+rXs $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/
-    # Allow instance to write to media directory
-    sudo chgrp -R $LAVA_SYS_USER $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
-    sudo chmod -R g+rwXs $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
-    # Prevent anyone else from reading from the media directory
-    sudo chmod -R o-rX $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
+
+    # this is only done on the master
+    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ]; then
+        # Allow instance to write to media directory
+        sudo chgrp -R $LAVA_SYS_USER $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
+        sudo chmod -R g+rwXs $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
+        # Prevent anyone else from reading from the media directory
+        sudo chmod -R o-rX $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
+    fi
+
     # Allow instance user to put stuff in runtime directory
     # and allow www-data to read from that directory
     sudo chown -R $LAVA_SYS_USER:www-data $LAVA_PREFIX/$LAVA_INSTANCE/run
@@ -801,7 +809,7 @@ wizard_docs () {
 }
 
 upgrade_app () {
-    # executed before the upgrade steps.
+    # install_app is already executed explicitly before the upgrade steps.
     true
 }
 
@@ -1960,7 +1968,7 @@ cmd_upgrade() {
     fi
 
     _maybe_pre_convert_to_buildout
-    upgrade_app
+    install_app
     _maybe_post_convert_to_buildout
     for upgrade_step in $LAVA_INSTALL_STEPS; do
         upgrade_$upgrade_step
