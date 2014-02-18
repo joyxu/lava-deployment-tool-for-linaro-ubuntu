@@ -617,13 +617,20 @@ install_fs() {
     # Lava-dispatcher folders
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/cache/lava-dispatcher
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server/images
-    # Repository of precious user-generated data (needs backup)
-    # we include the creation of "lava-logs" as well. Otherwise this gets
-    # created automatically by lava code as root and without g+w permissions
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
-    # Similar to the above, we need to create the job-output folder so that
-    # it also does not get created by lava as root.
-    mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/job-output
+
+    if [ "$LAVA_INSTALL_STEPS" = "$LAVA_WORKER_STEPS" ]; then
+        # will be used to mount the remote filesystem
+        mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media
+    else
+        # Repository of precious user-generated data (needs backup) we include
+        # the creation of "lava-logs" as well. Otherwise this gets created
+        # automatically by lava code as root and without g+w permissions
+        mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/lava-logs
+        # Similar to the above, we need to create the job-output folder so that
+        # it also does not get created by lava as root.
+        mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/job-output
+    fi
+
     # Log files
     mkdir -p $LAVA_PREFIX/$LAVA_INSTANCE/var/log
     # Sockets and other runtime stuff
@@ -645,8 +652,7 @@ install_fs() {
     sudo chgrp -R $LAVA_SYS_USER $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server
     sudo chmod -R g+rXs $LAVA_PREFIX/$LAVA_INSTANCE/etc/lava-server/
 
-    # this is only done on the master
-    if [ "$LAVA_INSTALL_STEPS" != "$LAVA_WORKER_STEPS" ]; then
+    if [ ! -f $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/media/.mounted ]; then
         # Allow instance to write to media directory
         sudo chgrp -R $LAVA_SYS_USER $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
         sudo chmod -R g+rwXs $LAVA_PREFIX/$LAVA_INSTANCE/var/lib/lava-server/
