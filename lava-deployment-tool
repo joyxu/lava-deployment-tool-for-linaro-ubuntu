@@ -687,9 +687,9 @@ wizard_remote_fs() {
     echo "is managed by configuring sshfs to mount the master's media directory"
     echo
 
-    LAVA_REMOTE_FS_HOST=${LAVA_MASTER}
-    LAVA_REMOTE_FS_USER=${LAVA_SYS_USER}
-    LAVA_REMOTE_FS_DIR=/srv/lava/instances/${LAVA_INSTANCE}
+    LAVA_REMOTE_FS_HOST=${LAVA_REMOTE_FS_HOST:-$LAVA_MASTER}
+    LAVA_REMOTE_FS_USER=${LAVA_REMOTE_FS_USER:-$LAVA_SYS_USER}
+    LAVA_REMOTE_FS_DIR=${LAVA_REMOTE_FS_DIR:-/srv/lava/instances/${LAVA_INSTANCE}}
 
     echo "Master Instance Host:        '$LAVA_REMOTE_FS_HOST'"
     echo "Master Instance User:        '$LAVA_REMOTE_FS_USER'"
