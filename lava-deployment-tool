@@ -449,7 +449,7 @@ wizard_devmode () {
 }
 
 install_devmode() {
-    true
+    sudo apt-get install --no-install-recommends diffstat
 }
 
 defaults_user() {
@@ -824,7 +824,7 @@ upgrade_docs () {
 }
 
 upgrade_devmode () {
-    true
+    sudo apt-get install --no-install-recommends diffstat
 }
 
 upgrade_user () {
