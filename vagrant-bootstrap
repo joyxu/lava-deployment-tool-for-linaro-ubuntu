@@ -15,7 +15,10 @@ marker=/var/tmp/.apt-get-update.$(date +%Y%m%d)
 if ! test -f $marker; then
   apt-get update
   apt-get -q -y dist-upgrade
-  apt-get -q -y install --no-install-recommends virtualbox-guest-dkms virtualbox-guest-utils
+  apt-get -q -y install virt-what
+  if virt-what | grep -q virtualbox; then
+    apt-get -q -y install --no-install-recommends virtualbox-guest-dkms virtualbox-guest-utils
+  fi
   touch $marker
 fi
 
