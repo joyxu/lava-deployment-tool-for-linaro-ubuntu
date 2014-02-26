@@ -231,6 +231,24 @@ KVM device types to work, install the qemu-kvm package on the
 dispatcher. In qemu 1.5 and later, qemu-kvm is a transitional package
 depending on qemu-system-x86 which is enough for a KVM device type.
 
+A note on Heartbeat
+===================
+The heartbeat data of the dispatcher node is sent to the database via
+xmlrpc. For this feature to work correctly the ``rpc2_url`` parameter
+should be set properly. Login as an admin user and go to
+http://localhost/admin/lava_scheduler_app/worker/ (replace localhost
+with your server name/IP). Click on the machine which is your master
+(in case of distributed deployment), or the machine that is listed in
+the page (in case of single LAVA instance). In the page that opens,
+set the "Master RPC2 URL:" with the correct value, if it is not set
+properly, already. Do not touch any other values in this page except
+the description, since all the other fields except description is
+populated automatically. The following figure illustrates this:
+
+.. image:: ./images/lava-worker-rpc2-url.png
+    :width: 640
+    :height: 480
+
 Backing Up LAVA instance
 ========================
 

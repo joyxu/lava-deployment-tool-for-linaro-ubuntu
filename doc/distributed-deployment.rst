@@ -55,6 +55,23 @@ database, the master instance will need to be configured separately.
 
 LAVA_MASTER is still needed to support sshfs connections for results.
 
+Heartbeat
+=========
+Each dispatcher worker node sends heartbeat data to the master node
+via xmlrpc. For this feature to work correctly the ``rpc2_url``
+parameter should be set properly. Login as an admin user and go to
+http://localhost/admin/lava_scheduler_app/worker/ (replace localhost
+with your server name/IP). Click on the machine which is your master
+and in the page that opens, set the "Master RPC2 URL:" with the
+correct value, if it is not set properly, already. Do not touch any
+other values in this page except the description, since all the other
+fields except description is populated automatically. The following
+figure illustrates this:
+
+.. image:: ./images/lava-worker-rpc2-url.png
+    :width: 640
+    :height: 480
+
 Frequently encountered problems
 ===============================
 
@@ -73,32 +90,55 @@ SSHFS on the worker has successfully mounted from the master. Check `mount` and 
 Considerations for Geographically separate Master/Worker setups
 ===============================================================
 
-TODO
 A :ref:`remote_worker` needs to be able to communicate with the :ref:`lava_server` over SSH and Postgres (standard ports 22 and 5432) so some configuration will be needed if the :ref:`lava_master` is behind a firewall.
-* Port forwarding behind firewalls
-The :ref:`DUT` console output logs are written to a filesystem that is shared over SSHFS from the master :ref:`lava_master`. A side-effect of this is that over high latency links there can be a delay in seeing console output when viewing it on the scheduler job webpage. SSHFS can recover from network problems but a monitoring system to check the mount is still available is preferred.
+
+* The :ref:`DUT` console output logs are written to a filesystem that is shared over SSHFS from the master :ref:`lava_master`. A side-effect of this is that over high latency links there can be a delay in seeing console output when viewing it on the scheduler job webpage. SSHFS can recover from network problems but a monitoring system to check the mount is still available is preferred.
 * Latency over SSHFS
 * Log file update speed
+* Port forwarding behind firewalls
 
 Scaling Deployments
 ===================
 
-TODO How many boards can a server "dispatch"
-Some jobs require some heavy IO while LAVA reconfigures an image or compresses/decompresses. This blocks one processor 
+* How many boards can a server "dispatch"?
+
+  Some jobs require some heavy IO while LAVA reconfigures an image or
+  compresses/decompresses. This blocks one processor.
 
 
-TODO Considerations of serial connections
-Modern server or desktop x86 hardware will often have no, or very few, serial ports, but :ref:`DUT` are still often controlled by LAVA over serial.
-The 2 solutions we use for this in the LAVA lab are dedicated serial console servers or usb-to-serial adaptors. If you plan to use many usb-to-serial adaptors, ensure that your USB hub has an external power source. For ease of udev configuration, use a usb-to-serial chipset that supports unique serial numbers, such as FTDI.
+Considerations of serial connections
+====================================
 
-In a large deployment in server racks, rackmounted serial hardware is available. Avocent offer Cyclades serial console servers which work well however the cost can be high. An alternative is a 16 port rackmount USB serial adapters, available from companies such as StarTech. Combined with :ref:`ser2net`, we have found these to be very reliable.
+* Modern server or desktop x86 hardware will often have no, or very
+  few, serial ports, but :ref:`DUT` are still often controlled by LAVA
+  over serial. The 2 solutions we use for this in the LAVA lab are
+  dedicated serial console servers or usb-to-serial adaptors. If you
+  plan to use many usb-to-serial adaptors, ensure that your USB hub
+  has an external power source. For ease of udev configuration, use a
+  usb-to-serial chipset that supports unique serial numbers, such as
+  FTDI.
+* In a large deployment in server racks, rackmounted serial hardware
+  is available. Avocent offer Cyclades serial console servers which
+  work well however the cost can be high. An alternative is a 16 port
+  rackmount USB serial adapters, available from companies such as
+  StarTech. Combined with :ref:`ser2net`, we have found these to be
+  very reliable.
 
 
 Other Issues to consider
 ========================
 
-TODO
-
 * Network switch bandwidth
+  There will be huge data transfers happening between the dispatcher
+  worker and the master, also between the devices attached to the
+  dispatcher worker. In such a case careful thought must be given in
+  placing and commissioning a network switch, in order to handle this
+  huge bandwidth transfer.
 * Proxy server
+  Since all the devices loads images from the URL given in the job
+  file, it is a good idea to have a proxy server installed and route
+  the download traffic via this proxy server, which prevents image
+  downloads directly and saves bandwidth. The proxy server can be set
+  for the dispatcher during installation via lava deployment tool or
+  by editing the value of ``LAVA_PROXY`` in /srv/lava/instances/<your_instance_name>/instance.conf
 
