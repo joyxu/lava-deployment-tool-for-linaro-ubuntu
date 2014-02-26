@@ -2532,6 +2532,8 @@ Commands for working with data:
     restore - restore earlier backup (removes current data)
 Commands for working at lower level:
     manage  - run lava-server management commands
+    rebuild-doc - rebuilds the documentation (mostly useful for
+                  developers or people writing documentation)
 
 Options:
 
@@ -2652,6 +2654,14 @@ run_cmd() {
             export LAVA_INSTALL_STEPS=$LAVA_WORKER_STEPS
             os_check
             cmd_${cmd/worker/} "$@"
+            ;;
+        rebuild-doc)
+            if [ $# -ne 1 ]; then
+                echo "usage: lava-deployment-tool rebuild-doc INSTANCE"
+                exit 1
+            fi
+            LAVA_INSTANCE="$1"
+            install_docs
             ;;
         backup)
             cmd_backup "$@"
