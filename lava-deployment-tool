@@ -22,7 +22,8 @@ LAVA_GIT_CACHE=$LAVA_ROOT/.cache/git-cache
 LAVA_PYTHON=python2.6
 
 # All of LAVA is being served by this uWSGI version
-LAVA_UWSGI=1.0.3
+LAVA_UWSGI=1.9.17.1
+LAVA_UWSGI_SHA256=e2558b918afe47640e3c4e75be4347e7e8dc7b19caf2120b6e1fb6bf17891c2a
 
 # Current version of setup required by lava (global state)
 export LAVA_SETUP_REQUIRED_VERSION=29
@@ -1672,8 +1673,8 @@ cmd_setup() {
             https://launchpad.net/bzr/2.5/2.5.1/+download/bzr-2.5.1.tar.gz \
             967346fa6cc52971a8dfd5171ec22e1928cf455fb4317013b05b0915ff927982
         ensure_downloaded_check_sha256 \
-            http://projects.unbit.it/downloads/old/uwsgi-$LAVA_UWSGI.tar.gz \
-            81dc137bc8b7b3962e527cafb1a719342c34eb07d568dc61c7766f9a9bcdee62
+            http://projects.unbit.it/downloads/uwsgi-$LAVA_UWSGI.tar.gz \
+            $LAVA_UWSGI_SHA256
         ensure_downloaded_check_sha256 \
             http://pypi.python.org/packages/source/z/zc.buildout/zc.buildout-1.5.2.tar.gz \
             0ac5a325d3ffbc5a988fb3ba87f4159d4769cc73e3331cb5234edc8839b6506b
