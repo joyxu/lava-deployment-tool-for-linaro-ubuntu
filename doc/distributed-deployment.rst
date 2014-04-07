@@ -72,6 +72,12 @@ figure illustrates this:
     :width: 640
     :height: 480
 
+The "HEARTBEAT_TIMEOUT" value decides the frequency (in seconds) at
+which heartbeat data gets updated. The default value is 300 seconds. This
+timeout could be set separately for each worker node by tweaking the 
+value of "HEARTBEAT_TIMEOUT" value in
+``/srv/lava/$LAVA_INSTANCE/etc/lava-server/worker.conf``
+
 Frequently encountered problems
 ===============================
 
