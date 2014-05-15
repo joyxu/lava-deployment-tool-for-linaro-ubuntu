@@ -52,7 +52,7 @@ LAVA_FORCE=no
 
 os_check() {
     case `lsb_release -i -s` in
-        Ubuntu)
+        Ubuntu|Linaro)
             case `lsb_release -c -s` in
                 lucid)
                     export LAVA_PYTHON=python2.6
@@ -880,9 +880,16 @@ upgrade_worker_config () {
 }
 
 install_buildout () {
+    #return
     set -xe
     local venv="$LAVA_PREFIX/$LAVA_INSTANCE/var/lib/bootstrap-venv"
     virtualenv --no-site-packages "${venv}"
+    set +xe
+    "${venv}/bin/pip" install \
+        $LAVA_DOWNLOAD_CACHE/dist/distribute-0.6.24.tar.gz 
+    "${venv}/bin/pip" install \
+        $LAVA_DOWNLOAD_CACHE/dist/distribute-0.6.24.tar.gz 
+    set -xe
     "${venv}/bin/pip" install \
         $LAVA_DOWNLOAD_CACHE/dist/distribute-0.6.24.tar.gz \
         $LAVA_DOWNLOAD_CACHE/dist/zc.buildout-1.5.2.tar.gz \
@@ -1118,8 +1125,7 @@ Alias  /${LAVA_INSTANCE}-static/ $LAVA_PREFIX/$LAVA_INSTANCE/var/www/lava-server
 <Directory $LAVA_PREFIX/$LAVA_INSTANCE/var/www>
     Options FollowSymLinks
     AllowOverride None
-    Order allow,deny
-    allow from all
+    Require all granted
 </Directory>
 
 # uWSGI mount point. For this to work the uWSGI module needs be loaded.
@@ -1635,7 +1641,7 @@ _create_buildout_caches() {
     sudo mkdir -p $LAVA_DOWNLOAD_CACHE/dist
     sudo chown -R $(whoami):$(id -gn) $LAVA_DOWNLOAD_CACHE
     sudo mkdir -p $LAVA_GIT_CACHE
-    sudo chown $(whoami):$(id -gn) $LAVA_GIT_CACHE
+    sudo chown -R $(whoami):$(id -gn) $LAVA_GIT_CACHE
 }
 
 cmd_setup() {
@@ -1954,7 +1960,7 @@ cmd_install() {
     # Sanity checking, ensure that instance does not exist yet
     if [ -d "$LAVA_PREFIX/$LAVA_INSTANCE" ]; then
         echo "Instance $LAVA_INSTANCE already exists"
-        return
+        #return
     fi
 
     # Configure everything first (get all the answers)
